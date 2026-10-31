@@ -435,11 +435,12 @@ brick hurdles, two relief pipes per level, and toilet finishes:
 | Level | Name | Starting weapon |
 | --- | --- | --- |
 | 04-02 | Paper Chase | Throwable toilet paper |
-| 04-03 | Roll With It | Throwable toilet paper |
+| 04-03 | Roll With It | None; toilet paper pickup near the start |
 | 04-04 | Whip It Quick | Chain whip |
 | 04-05 | Panic Parade | Chain whip |
 
-Each stage starts the player grown and equipped, including after a retry, with
+Each stage starts the player grown, including after a retry. 04-03 starts without
+a weapon and supplies a toilet-paper pickup; the others start equipped with
 a spare weapon pickup near the start. Bottles remain 96 blocks apart, roughly
 eight seconds of running. Blue and purple punks throw bottles throughout these
 routes alongside regular grandpas. Grandpas have three health and swing a cane
@@ -457,6 +458,7 @@ a chain whip replaces toilet paper, and the later stages supply their own whip.
 and the ordinary 100-second timer. Its boss encounter is intentionally pending.
 Custom maps can use `L` for a toilet-paper pickup block, `g` for a regular grandpa,
 and `StartingPower=ToiletPaper` or `StartingPower=ChainWhip` for starting gear.
+`StartingPower=Growth` starts grown without a weapon, replacing carried weapons.
 
 ### Boss evasions and the expanded Emo Kid gauntlet
 
