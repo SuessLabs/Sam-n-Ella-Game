@@ -7,7 +7,7 @@ The original source remains under `SamElla/`; the core project compiles the
 portable files, and the desktop project compiles only its Windows host and updater.
 
 `SamElla.slnx` remains the desktop/test solution and needs no mobile workloads.
-`SamElla.Mobile/SamElla.Mobile.slnx` contains the mobile host and core.
+`SamElla.Mobile.slnx` contains the mobile host and core.
 
 ## Windows
 
