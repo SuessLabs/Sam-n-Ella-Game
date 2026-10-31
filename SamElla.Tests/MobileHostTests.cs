@@ -104,7 +104,7 @@ public sealed class MobileHostTests : GameTestBase
       input.SetPointer(1, 0x27);
       for (int tick = 0; tick < 6; tick++)
         session.Tick(input, Game.Step);
-  
+
       Assert.IsTrue(session.Game.X > x);
       input.Clear();
       input.SetPointer(1, 0x20);
@@ -122,6 +122,11 @@ public sealed class MobileHostTests : GameTestBase
       Press(session, input, 0x0D);
       Assert.IsFalse(session.Game.Paused);
       Assert.AreEqual(clock - 1, session.Game.LevelTicksRemaining);
+      Press(session, input, 0x0D);
+      Assert.IsTrue(session.Game.Paused);
+      Press(session, input, 0x1B);
+      Assert.IsFalse(session.Game.Paused);
+      Assert.IsFalse(session.ExitRequested, "Mobile Back resumes the pause menu rather than exiting the game.");
       Assert.AreEqual(30, audio.MusicVolume);
       Assert.AreEqual(50, audio.EffectsVolume);
     }

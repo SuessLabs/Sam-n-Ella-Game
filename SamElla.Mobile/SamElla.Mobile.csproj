@@ -10,7 +10,6 @@
     <Nullable>enable</Nullable>
     <ApplicationTitle>Sam n' Ella</ApplicationTitle>
     <ApplicationId>com.suesslabs.samella</ApplicationId>
-    <ApplicationDisplayVersion>0.7.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">23.0</SupportedOSPlatformVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
@@ -27,7 +26,18 @@
       LogicalName="Game/Assets/%(RecursiveDir)%(Filename)%(Extension)" />
     <MauiAsset Include="../SamElla/Levels/*.txt" LogicalName="Game/Levels/%(Filename)%(Extension)" />
     <MauiAsset Include="../SamElla/ThirdPartyNotices.txt" LogicalName="ThirdPartyNotices.txt" />
+    <MauiAsset Include="Resources/Notices/*" LogicalName="Notices/%(Filename)%(Extension)" />
   </ItemGroup>
+  <Target Name="ReadGameVersion" BeforeTargets="PrepareForBuild">
+    <XmlPeek XmlInputPath="../SamElla/SamElla.csproj" Query="/Project/PropertyGroup/FileVersion/text()">
+      <Output TaskParameter="Result" PropertyName="GameFileVersion" />
+    </XmlPeek>
+    <PropertyGroup>
+      <FileVersion>$(GameFileVersion)</FileVersion>
+      <AssemblyVersion>$(GameFileVersion)</AssemblyVersion>
+      <ApplicationDisplayVersion>$([System.Version]::Parse('$(GameFileVersion)').ToString(3))</ApplicationDisplayVersion>
+    </PropertyGroup>
+  </Target>
   <Target Name="CreateGameContentManifest" BeforeTargets="PrepareForBuild">
     <ItemGroup>
       <GameArt Include="../SamElla/Assets/**/*.sprite;../SamElla/Assets/**/*.txt" Exclude="../SamElla/Assets/AppIcon/**;../SamElla/Assets/Previews/**" />

@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../SamElla.Core/SamElla.Core.csproj" />
+  <Project Path="SamElla.Mobile.csproj" />
+</Solution>

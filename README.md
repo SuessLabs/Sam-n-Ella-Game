@@ -218,6 +218,14 @@ defaults are removed. The existing `--levels <directory>` override still works.
 
 NetMan started out as a side-scrolling DOS pixle art game. The orginal code can be found in the Legacy folder [NetMan-0.1](Legacy/NetMan-0.1/README.md) which preserves the original console version.
 
+## Android and iOS
+
+`SamElla.Mobile` adds a .NET MAUI mobile host with landscape touch controls,
+scaled pixel graphics, audio, offline levels, and pause/resume handling.
+Windows retains its existing desktop executable and Velopack installer.
+See [mobile build and deployment instructions](Docs/mobile.md) for Android APKs,
+iOS/Mac requirements, controls, and validation.
+
 ## Developer Notes
 
 * Active development lives in [SamElla](SamElla/README.md)
