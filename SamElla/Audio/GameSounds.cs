@@ -8,6 +8,9 @@ internal static class GameSounds
 
   public static short[] Create(GameSound sound)
   {
+    if (sound == GameSound.ToiletPaperThrow)
+      return CreatePaperWhoosh();
+
     if (sound is GameSound.FartShort or GameSound.FartLong)
       return CreateFart(sound == GameSound.FartLong);
 
@@ -94,6 +97,27 @@ internal static class GameSounds
       }
 
       samples[i] = (short)(value * short.MaxValue * 0.45);
+    }
+
+    return samples;
+  }
+
+  private static short[] CreatePaperWhoosh()
+  {
+    const double Duration = 0.18;
+    var samples = new short[(int)(SampleRate * Duration)];
+    uint noise = 0x7A9E2;
+    double filtered = 0;
+    for (int i = 0; i < samples.Length; i++)
+    {
+      double time = (double)i / SampleRate;
+      noise ^= noise << 13;
+      noise ^= noise >> 17;
+      noise ^= noise << 5;
+      double value = (noise & 0xFFFF) / 32767.5 - 1;
+      filtered += (value - filtered) * 0.28;
+      double envelope = Math.Sin(Math.PI * time / Duration) * Math.Min(1, time / 0.005);
+      samples[i] = (short)(filtered * envelope * short.MaxValue * 0.65);
     }
 
     return samples;

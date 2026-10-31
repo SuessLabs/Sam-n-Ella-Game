@@ -36,7 +36,7 @@ public sealed class SpeedRunsTests : GameTestBase
       .Count(x => game.CanUseReliefPipe(x, y) && level.Tile(x - 1, y) != level.Tile(x, y)));
     Assert.AreEqual(2, reliefPipes);
     string[] files = LevelSelectScreen.Discover(Path.Combine(AppContext.BaseDirectory, "Levels"));
-    Assert.AreEqual(SourcePath, files[^1]);
+    Assert.AreEqual(SourcePath, files.Single(path => Level.Load(path).SectionLevelNumber == "04-01"));
   }
 
   [TestMethod]

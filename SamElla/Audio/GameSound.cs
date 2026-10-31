@@ -18,6 +18,7 @@ internal enum GameSound
   ChainWhip,
   FartShort,
   FartLong,
+  ToiletPaperThrow,
   BlockBreak,
   Coin,
 }

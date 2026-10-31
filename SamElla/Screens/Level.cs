@@ -17,6 +17,8 @@ public sealed class Level
   public PipePassage? EntryPipe { get; private set; }
   public PipePassage? ExitPipe { get; private set; }
   public bool StartsWithShotgun { get; private set; }
+  public bool StartsWithToiletPaper { get; private set; }
+  public bool StartsWithChainWhip { get; private set; }
   public bool IsSpeedRun { get; private set; }
   public BackgroundTheme Background { get; }
   public bool EnemiesAvoidLedges { get; }
@@ -33,6 +35,8 @@ public sealed class Level
   public List<(int X, int Y)> BluePunkSpawns { get; } = [];
   public List<(int X, int Y)> PurplePunkSpawns { get; } = [];
   public List<(int X, int Y)> EmoBossSpawns { get; } = [];
+
+  public List<(int X, int Y)> GrandpaSpawns { get; } = [];
 
   public List<(int X, int Y)> OldManSpawns { get; } = [];
 
@@ -83,7 +87,7 @@ public sealed class Level
       displayName = displayName[..MaxNameLength];
 
     PipePassage? entryPipe = null, exitPipe = null;
-    bool startsWithShotgun = false;
+    string startingPower = "None";
     bool speedRun = false;
     var background = BackgroundTheme.Day;
     bool enemiesAvoidLedges = false;
@@ -103,8 +107,8 @@ public sealed class Level
         && bool.TryParse(setting[1], out bool timedRun))
         speedRun = timedRun;
       else if (setting[0].Equals("StartingPower", StringComparison.OrdinalIgnoreCase)
-        && (setting[1].Equals("Shotgun", StringComparison.OrdinalIgnoreCase) || setting[1].Equals("None", StringComparison.OrdinalIgnoreCase)))
-        startsWithShotgun = setting[1].Equals("Shotgun", StringComparison.OrdinalIgnoreCase);
+        && new[] { "None", "Shotgun", "ChainWhip", "ToiletPaper" }.Contains(setting[1], StringComparer.OrdinalIgnoreCase))
+        startingPower = setting[1];
       else if (setting[0].Equals("Background", StringComparison.OrdinalIgnoreCase)
         && Enum.TryParse(setting[1], true, out BackgroundTheme parsedBackground) && Enum.IsDefined(parsedBackground)
         && !setting[1].All(char.IsAsciiDigit))
@@ -129,7 +133,7 @@ public sealed class Level
         && int.TryParse(setting[1], out int seconds) && seconds is >= 1 and <= 9999)
         timeLimitSeconds = seconds;
       else
-        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Name=1..32 display characters, Background=Day or Background=Night or Background=Underworld, EntryPipe/ExitPipe=x,y,targetX,targetY, StartingPower=None/Shotgun, SpeedRun=true/false, EnemyLedges=Turn/Fall, or TimeLimit=1..9999 seconds.");
+        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Name=1..32 display characters, Background=Day or Background=Night or Background=Underworld, EntryPipe/ExitPipe=x,y,targetX,targetY, StartingPower=None/Shotgun/ChainWhip/ToiletPaper, SpeedRun=true/false, EnemyLedges=Turn/Fall, or TimeLimit=1..9999 seconds.");
 
       mapStart++;
       while (mapStart < lines.Length && string.IsNullOrWhiteSpace(lines[mapStart]))
@@ -146,7 +150,9 @@ public sealed class Level
     var map = new Level(name, new char[lines.Max(line => line.Length), lines.Length], background, enemiesAvoidLedges, timeLimitSeconds, displayName);
     map.EntryPipe = entryPipe;
     map.ExitPipe = exitPipe;
-    map.StartsWithShotgun = startsWithShotgun;
+    map.StartsWithShotgun = startingPower.Equals("Shotgun", StringComparison.OrdinalIgnoreCase);
+    map.StartsWithToiletPaper = startingPower.Equals("ToiletPaper", StringComparison.OrdinalIgnoreCase);
+    map.StartsWithChainWhip = startingPower.Equals("ChainWhip", StringComparison.OrdinalIgnoreCase);
     map.IsSpeedRun = speedRun;
     int starts = 0, goals = 0;
 
@@ -155,7 +161,7 @@ public sealed class Level
       for (int x = 0; x < map.Width; x++)
       {
         char tile = x < lines[y].Length ? lines[y][x] : '.';
-        if (!". #B?MFQWo^PpSGECZDRUAfwbcH~kT".Contains(tile))
+        if (!". #B?MFQWLo^PpSGECZDRUAfwbcHg~kT".Contains(tile))
           throw new InvalidDataException($"{name}: unknown tile '{tile}' at column {x + 1}, row {y + 1}.");
 
         if (tile == 'S')
@@ -165,10 +171,11 @@ public sealed class Level
           tile = '.';
         }
 
-        if (tile is 'E' or 'C' or 'Z' or 'D' or 'R' or 'U' or 'A' or 'f' or 'w' or 'b' or 'c' or 'H')
+        if (tile is 'E' or 'C' or 'Z' or 'D' or 'R' or 'U' or 'A' or 'f' or 'w' or 'b' or 'c' or 'H' or 'g')
         {
           var spawns = tile switch
           {
+            'g' => map.GrandpaSpawns,
             'f' => map.FlySpawns,
             'w' => map.WormSpawns,
             'b' => map.BluePunkSpawns,
@@ -197,7 +204,7 @@ public sealed class Level
     if (starts != 1 || goals == 0)
       throw new InvalidDataException($"{name}: use exactly one S (start) and at least one G (goal) or T (toilet).");
 
-    foreach (var spawn in map.ZombieSpawns.Concat(map.BossSpawns).Concat(map.OldManSpawns).Concat(map.BluePunkSpawns).Concat(map.PurplePunkSpawns))
+    foreach (var spawn in map.ZombieSpawns.Concat(map.BossSpawns).Concat(map.OldManSpawns).Concat(map.BluePunkSpawns).Concat(map.PurplePunkSpawns).Concat(map.GrandpaSpawns))
     {
       if (spawn.Y == 0 || map.Solid(spawn.X, spawn.Y - 1))
         throw new InvalidDataException($"{name}: tall enemy at column {spawn.X + 1}, row {spawn.Y + 1} needs an empty tile above it.");
@@ -234,7 +241,7 @@ public sealed class Level
 
   public char Tile(int x, int y) => x < 0 || x >= Width || y < 0 || y >= Height ? '.' : _tiles[x, y];
 
-  public bool Solid(int x, int y) => x < 0 || x >= Width || y < 0 || "#B?MFQWPpX~".Contains(Tile(x, y));
+  public bool Solid(int x, int y) => x < 0 || x >= Width || y < 0 || "#B?MFQWLPpX~".Contains(Tile(x, y));
 
   public void Clear(int x, int y)
   {
