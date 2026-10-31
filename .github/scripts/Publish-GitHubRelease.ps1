@@ -37,7 +37,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 $isPrerelease = $Channel -eq 'Develop'
-$tag = if ($isPrerelease) { "v$Version-develop" } else { "v$Version" }
+$tag = if ($isPrerelease) { "v$Version-pre" } else { "v$Version" }
 $prereleaseFlag = if ($isPrerelease) { '--prerelease' } else { '--prerelease=false' }
 $latestFlag = if ($isPrerelease) { '--latest=false' } else { '--latest=true' }
 

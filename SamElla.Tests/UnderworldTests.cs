@@ -359,6 +359,37 @@ public sealed class UnderworldTests : GameTestBase
       Assert.IsTrue(game.ReturnedToDaylight);
   }
 
+  [TestMethod]
+  [DataRow(53, 4, false)]
+  [DataRow(53, 4, true)]
+  [DataRow(101, 3, false)]
+  [DataRow(101, 3, true)]
+  [DataRow(178, 4, false)]
+  [DataRow(178, 4, true)]
+  public void ReservoirPitsHaveJumpClearanceForBothPlayerSizes(int pitStart, int pitWidth, bool grown)
+  {
+    string[] source = File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "Levels", Names[4]));
+    int mapStart = Array.FindIndex(source, line => line.StartsWith("...."));
+    char[] spawnRow = source[mapStart + 19].Replace('S', '.').ToCharArray();
+    spawnRow[pitStart - 6] = 'S';
+    source[mapStart + 19] = new string(spawnRow);
+    var game = Map(new[] { $"StartingPower={(grown ? "Shotgun" : "None")}" }.Concat(source).ToArray());
+    game.Enemies.Clear();
+    int landing = pitStart + pitWidth + 2;
+    for (int tick = 0; tick < 180 && game.X < landing && !game.IsDying; tick++)
+    {
+      bool approachingPit = game.X + Game.BodyWidth >= pitStart - 2;
+      if (game.Grounded && approachingPit)
+        game.QueueJump();
+
+      game.Update(1, true);
+    }
+
+    Assert.IsFalse(game.IsDying, $"Pit at {pitStart}, grown={grown}: fell at {game.X:F2}, {game.Y:F2}.");
+    Assert.IsTrue(game.X >= landing);
+    Assert.AreEqual(grown, game.IsLarge);
+  }
+
   private Game Arena() => Map("................................", "................................", "................................",
     "................................", "................................", "................................", "................................",
     "...S.........................G..", "################################");
