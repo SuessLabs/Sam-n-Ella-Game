@@ -88,6 +88,14 @@ folder from `%LocalAppData%/NetMan` into `%LocalAppData%/SamElla` before launchi
 the new version. Audio preferences are loaded at startup only from
 `%LocalAppData%/SamElla/settings.txt` and saved when Settings closes or the game exits.
 
+Settings includes **Opt-in Pre-Release (Experimental)**, off by default. Use
+Left/Right to turn it off/on, or Enter/Space to toggle it. The saved preference
+takes effect on the next launch: enabled includes public GitHub prereleases in
+Velopack update checks; disabled checks stable releases only. Turning it off does
+not downgrade an installed experimental build; it waits for a newer stable build.
+Update downloads and installation follow the existing title-screen/exit behavior.
+An update already downloaded in the current session follows the previous setting.
+
 The original `SamElla-vX.Y.Z.zip` remains available as an unmanaged portable build;
 it does not self-update. Existing ZIP users must install the setup EXE or use the
 Velopack-generated portable ZIP once to enable automatic updates.
@@ -98,9 +106,10 @@ and `releases.win-x64.json` are required; uploading only a ZIP is insufficient.
 The new `publish-release.yml` workflow performs the build, tests, and upload automatically
 when a GitHub Release is published from a tag containing this integration. It also
 attaches the original ZIP. The workflow uses GitHub's built-in release token; client
-applications contain no GitHub credentials. Draft and prerelease releases are not
-offered by the app. If using immutable GitHub releases, build locally and attach the
-assets while the release is still a draft, before publishing it.
+applications contain no GitHub credentials. Draft releases are never offered;
+prereleases require the saved experimental opt-in. If using immutable GitHub
+releases, build locally and attach the assets while the release is still a draft,
+before publishing it.
 
 ### Automatic releases from merged PRs
 

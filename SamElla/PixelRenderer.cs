@@ -225,18 +225,20 @@ internal sealed class PixelRenderer
 
     DrawAudioToggle("BACKGROUND MUSIC", 68, screen.Audio.MusicEnabled, screen.SelectedIndex == 0);
     DrawVolumeSlider("MUSIC VOLUME", 99, screen.Audio.MusicVolume, screen.SelectedIndex == 1);
-    DrawAudioToggle("SOUND FX", 129, screen.Audio.SoundEffectsEnabled, screen.SelectedIndex == 2);
-    DrawVolumeSlider("SOUND FX VOLUME", 160, screen.Audio.SoundEffectsVolume, screen.SelectedIndex == 3);
+    DrawAudioToggle("SOUND FX", 124, screen.Audio.SoundEffectsEnabled, screen.SelectedIndex == 2);
+    DrawVolumeSlider("SOUND FX VOLUME", 150, screen.Audio.SoundEffectsVolume, screen.SelectedIndex == 3);
+    DrawAudioToggle("OPT-IN PRE-RELEASE", 169, screen.Updates.IncludePrereleases, screen.SelectedIndex == 4);
+    PixelFont.Draw(Frame, "(EXPERIMENTAL)", 52, 183, screen.SelectedIndex == 4 ? Gold : White);
+    DrawTitleText("UPDATE SETTING APPLIES NEXT LAUNCH", 197, White, 1);
 
-    Frame.FillTranslucent(144, 184, 96, 24, Ink, 180);
-    if (screen.SelectedIndex == 4)
-      Frame.FillTranslucent(144, 187, 96, 17, Gold, 45);
+    Frame.FillTranslucent(144, 207, 96, 17, Ink, 180);
+    if (screen.SelectedIndex == 5)
+      Frame.FillTranslucent(144, 207, 96, 17, Gold, 45);
 
-    DrawTitleText(screen.SelectedIndex == 4 ? "> BACK <" : "BACK", 192,
-      screen.SelectedIndex == 4 ? Gold : White, 1);
+    DrawTitleText(screen.SelectedIndex == 5 ? "> BACK <" : "BACK", 212,
+      screen.SelectedIndex == 5 ? Gold : White, 1);
 
-    DrawTitleText("UP/DOWN SELECT  LEFT/RIGHT ADJUST", 220, White, 1);
-    DrawTitleText("ENTER/SPACE TOGGLE  ESC BACK", 230, White, 1);
+    DrawTitleText("ARROWS ADJUST  ENTER/SPACE TOGGLE  ESC BACK", 230, White, 1);
   }
 
   private void DrawAudioToggle(string label, int y, bool enabled, bool selected)

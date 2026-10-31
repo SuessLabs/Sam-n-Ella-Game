@@ -10,7 +10,7 @@ namespace SamElla.Tests;
 public sealed class SettingsScreenTests
 {
   [TestMethod]
-  public void TogglesAreIndependentAndAllFiveRowsCanBeSelected()
+  public void TogglesAreIndependentAndAllSixRowsCanBeSelected()
   {
     var audio = new AudioSettings();
     var screen = new SettingsScreen(audio);
@@ -28,6 +28,8 @@ public sealed class SettingsScreenTests
     Assert.AreEqual(3, screen.SelectedIndex);
     screen.HandleInput([0x28], true);
     Assert.AreEqual(4, screen.SelectedIndex);
+    screen.HandleInput([0x28], true);
+    Assert.AreEqual(5, screen.SelectedIndex);
     screen.HandleInput([0x25, 0x27], true);
     Assert.IsTrue(screen.IsActive);
     screen.HandleInput([0x0D], true);
@@ -51,7 +53,7 @@ public sealed class SettingsScreenTests
     Assert.IsFalse(screen.Audio.MusicEnabled);
     Assert.AreEqual(0, screen.SelectedIndex);
     screen.HandleInput([0x26], true);
-    Assert.AreEqual(4, screen.SelectedIndex);
+    Assert.AreEqual(5, screen.SelectedIndex);
     screen.HandleInput([0x28], true);
     Assert.AreEqual(0, screen.SelectedIndex);
   }

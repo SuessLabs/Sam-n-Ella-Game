@@ -39,6 +39,7 @@ internal sealed class AppUpdates(IAppUpdateBackend backend, Action<Exception>? l
         progress => _status = $"DOWNLOADING UPDATE {progress}%", _cancellation.Token);
       _status = _ready ? "UPDATE READY" : string.Empty;
     }
+
     catch (Exception exception)
     {
       log?.Invoke(exception);
@@ -63,6 +64,7 @@ internal sealed class AppUpdates(IAppUpdateBackend backend, Action<Exception>? l
       backend.ScheduleApply(restart, restartArgs);
       return true;
     }
+
     catch (Exception exception)
     {
       log?.Invoke(exception);
@@ -72,9 +74,9 @@ internal sealed class AppUpdates(IAppUpdateBackend backend, Action<Exception>? l
   }
 }
 
-internal sealed class VelopackUpdateBackend : IAppUpdateBackend
+internal sealed class VelopackUpdateBackend(bool includePrereleases = false) : IAppUpdateBackend
 {
-  private readonly UpdateManager _manager = new(new GithubSource(AppUpdates.RepositoryUrl, null, false));
+  private readonly UpdateManager _manager = new(new GithubSource(AppUpdates.RepositoryUrl, null, includePrereleases));
   public bool IsInstalled => _manager.IsInstalled;
 
   public async Task<bool> DownloadLatestAsync(Action<int> progress, CancellationToken cancellationToken)
