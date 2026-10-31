@@ -83,8 +83,8 @@ music on/off and volume, plus sound effects on/off and volume, then returns to t
 title or paused game. Closing Settings with Escape, S, or F1 also saves. All four
 preferences are stored in `%LocalAppData%/SamElla/settings.txt` and restored
 at game startup, before any music or effects play. Only `settings.txt` is used.
-Missing or invalid preferences use the defaults: music and effects on, both at
-100% volume.
+Missing or invalid preferences use the defaults: music and effects on, music at
+30% volume, and sound effects at 50%. Existing saved volume preferences are preserved.
 
 You have three lives. Enemy side contact, landing on a spike tip from above, and falling into a pit cost a life. Spikes block sideways movement like pipes without causing side-contact damage. Touching them from below is safe. The player becomes a blood-and-clothing splatter while gameplay freezes. PRESS ANY KEY TO CONTINUE appears immediately, and a fresh keypress can restart at any point during death. With no keypress, the original two-second death animation plays and then waits indefinitely. A fresh keypress reloads the current level; holding a key does not dismiss the screen. After the last life, only a fresh Enter press can start a new run. Otherwise, the death animation finishes and a red GAME OVER page displays a tombstone and a random roast. Enter starts a new run from level one with cleared rewards and the normal starting lives, or the cheat starting lives if enabled. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
 

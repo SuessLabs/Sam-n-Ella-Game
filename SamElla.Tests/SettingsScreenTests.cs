@@ -59,7 +59,7 @@ public sealed class SettingsScreenTests
   [TestMethod]
   public void SlidersAdjustIndependentlyClampAndKeepValuesWhenReopened()
   {
-    var audio = new AudioSettings();
+    var audio = new AudioSettings { MusicVolume = 100, SoundEffectsVolume = 100 };
     var screen = new SettingsScreen(audio);
     screen.Open();
     screen.HandleInput([0x28, 0x25, 0x25], true);
@@ -97,7 +97,7 @@ public sealed class SettingsScreenTests
   [TestMethod]
   public void VolumeChangesWhileMutedKeepTheSwitchOffAndIgnoreUnfocusedInput()
   {
-    var audio = new AudioSettings();
+    var audio = new AudioSettings { MusicVolume = 100, SoundEffectsVolume = 100 };
     var screen = new SettingsScreen(audio);
 
     screen.Open();
@@ -140,6 +140,8 @@ public sealed class SettingsScreenTests
     {
       var defaults = AudioSettings.Load(path);
       Assert.IsTrue(defaults.MusicEnabled && defaults.SoundEffectsEnabled);
+      Assert.AreEqual(30, defaults.MusicVolume);
+      Assert.AreEqual(50, defaults.SoundEffectsVolume);
 
       new AudioSettings { MusicEnabled = false, SoundEffectsEnabled = true, MusicVolume = 25, SoundEffectsVolume = 75 }.Save(path);
       var restored = AudioSettings.Load(path);
@@ -152,9 +154,10 @@ public sealed class SettingsScreenTests
       restored = AudioSettings.Load(path);
       Assert.IsTrue(restored.MusicEnabled);
       Assert.IsFalse(restored.SoundEffectsEnabled);
-      Assert.AreEqual(100, restored.MusicVolume);
-      Assert.AreEqual(100, restored.SoundEffectsVolume);
+      Assert.AreEqual(30, restored.MusicVolume);
+      Assert.AreEqual(50, restored.SoundEffectsVolume);
     }
+
     finally
     {
       File.Delete(path);
@@ -162,7 +165,7 @@ public sealed class SettingsScreenTests
   }
 
   [TestMethod]
-  public void MissingVolumeValuesUseFullVolumeDefaults()
+  public void MissingVolumeValuesUseFreshInstallDefaults()
   {
     string path = Path.Combine(Path.GetTempPath(), $"samella-legacy-audio-{Guid.NewGuid():N}.txt");
     try
@@ -171,8 +174,8 @@ public sealed class SettingsScreenTests
       var restored = AudioSettings.Load(path);
       Assert.IsFalse(restored.MusicEnabled);
       Assert.IsFalse(restored.SoundEffectsEnabled);
-      Assert.AreEqual(100, restored.MusicVolume);
-      Assert.AreEqual(100, restored.SoundEffectsVolume);
+      Assert.AreEqual(30, restored.MusicVolume);
+      Assert.AreEqual(50, restored.SoundEffectsVolume);
     }
 
     finally
@@ -215,12 +218,12 @@ public sealed class SettingsScreenTests
 
     uint lightPanel = renderer.Frame.Pixels[(26 * PixelRenderer.Width) + 26];
     Assert.AreNotEqual(0xFF17263Fu, lightPanel, "The panel must allow the background to show through.");
-    Assert.AreEqual(0xFFF6F4DFu, renderer.Frame.Pixels[(99 * PixelRenderer.Width) + 329]);
+    Assert.AreEqual(0xFFF6F4DFu, renderer.Frame.Pixels[(99 * PixelRenderer.Width) + 269]);
 
     screen.HandleInput([0x28, 0x25], true);
     renderer.Frame.Clear(0xFFFFFFFF);
     renderer.DrawSettings(screen);
-    Assert.AreEqual(0xFFFFD56Bu, renderer.Frame.Pixels[(99 * PixelRenderer.Width) + 324]);
+    Assert.AreEqual(0xFFFFD56Bu, renderer.Frame.Pixels[(99 * PixelRenderer.Width) + 265]);
 
     renderer.Frame.Clear(0xFF000000);
     renderer.DrawSettings(screen);
