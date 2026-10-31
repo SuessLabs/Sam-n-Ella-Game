@@ -4,6 +4,7 @@ public sealed class Level
 {
   public const int DefaultTimeLimitSeconds = 100;
   public const int MaxNameLength = 32;
+  public const int SpeedRunTimeLimitSeconds = 10;
 
   private readonly char[,] _tiles;
 
@@ -16,6 +17,7 @@ public sealed class Level
   public PipePassage? EntryPipe { get; private set; }
   public PipePassage? ExitPipe { get; private set; }
   public bool StartsWithShotgun { get; private set; }
+  public bool IsSpeedRun { get; private set; }
   public BackgroundTheme Background { get; }
   public bool EnemiesAvoidLedges { get; }
   public int TimeLimitSeconds { get; }
@@ -82,6 +84,7 @@ public sealed class Level
 
     PipePassage? entryPipe = null, exitPipe = null;
     bool startsWithShotgun = false;
+    bool speedRun = false;
     var background = BackgroundTheme.Day;
     bool enemiesAvoidLedges = false;
     int timeLimitSeconds = DefaultTimeLimitSeconds;
@@ -96,6 +99,9 @@ public sealed class Level
 
         displayName = setting[1];
       }
+      else if (setting[0].Equals("SpeedRun", StringComparison.OrdinalIgnoreCase)
+        && bool.TryParse(setting[1], out bool timedRun))
+        speedRun = timedRun;
       else if (setting[0].Equals("StartingPower", StringComparison.OrdinalIgnoreCase)
         && (setting[1].Equals("Shotgun", StringComparison.OrdinalIgnoreCase) || setting[1].Equals("None", StringComparison.OrdinalIgnoreCase)))
         startsWithShotgun = setting[1].Equals("Shotgun", StringComparison.OrdinalIgnoreCase);
@@ -123,12 +129,15 @@ public sealed class Level
         && int.TryParse(setting[1], out int seconds) && seconds is >= 1 and <= 9999)
         timeLimitSeconds = seconds;
       else
-        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Name=1..32 display characters, Background=Day or Background=Night or Background=Underworld, EntryPipe/ExitPipe=x,y,targetX,targetY, StartingPower=None/Shotgun, EnemyLedges=Turn/Fall, or TimeLimit=1..9999 seconds.");
+        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Name=1..32 display characters, Background=Day or Background=Night or Background=Underworld, EntryPipe/ExitPipe=x,y,targetX,targetY, StartingPower=None/Shotgun, SpeedRun=true/false, EnemyLedges=Turn/Fall, or TimeLimit=1..9999 seconds.");
 
       mapStart++;
       while (mapStart < lines.Length && string.IsNullOrWhiteSpace(lines[mapStart]))
         mapStart++;
     }
+
+    if (speedRun)
+      timeLimitSeconds = SpeedRunTimeLimitSeconds;
 
     lines = lines[mapStart..];
     if (lines.Length < 3 || lines.Length > 100 || lines.Max(line => line.Length) is < 10 or > 10000)
@@ -138,6 +147,7 @@ public sealed class Level
     map.EntryPipe = entryPipe;
     map.ExitPipe = exitPipe;
     map.StartsWithShotgun = startsWithShotgun;
+    map.IsSpeedRun = speedRun;
     int starts = 0, goals = 0;
 
     for (int y = 0; y < map.Height; y++)
@@ -145,7 +155,7 @@ public sealed class Level
       for (int x = 0; x < map.Width; x++)
       {
         char tile = x < lines[y].Length ? lines[y][x] : '.';
-        if (!". #B?MFQWo^PpSGECZDRUAfwbcH~".Contains(tile))
+        if (!". #B?MFQWo^PpSGECZDRUAfwbcH~kT".Contains(tile))
           throw new InvalidDataException($"{name}: unknown tile '{tile}' at column {x + 1}, row {y + 1}.");
 
         if (tile == 'S')
@@ -177,7 +187,7 @@ public sealed class Level
           tile = '.';
         }
 
-        if (tile == 'G')
+        if (tile is 'G' or 'T')
           goals++;
 
         map._tiles[x, y] = tile;
@@ -185,7 +195,7 @@ public sealed class Level
     }
 
     if (starts != 1 || goals == 0)
-      throw new InvalidDataException($"{name}: use exactly one S (start) and at least one G (goal).");
+      throw new InvalidDataException($"{name}: use exactly one S (start) and at least one G (goal) or T (toilet).");
 
     foreach (var spawn in map.ZombieSpawns.Concat(map.BossSpawns).Concat(map.OldManSpawns).Concat(map.BluePunkSpawns).Concat(map.PurplePunkSpawns))
     {

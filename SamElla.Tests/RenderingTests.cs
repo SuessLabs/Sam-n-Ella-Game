@@ -148,6 +148,8 @@ public sealed class RenderingTests
           => asset.Width == 24 && asset.Height == 32,
         string name when name.StartsWith("worm-", StringComparison.Ordinal)
           => asset.Width == 24 && asset.Height == 16,
+        "toilet.sprite" or "player-toilet-sit.sprite" or "ella-toilet-sit.sprite"
+          => asset.Width == 32 && asset.Height == 32,
         "moon.sprite" => asset.Width == 32 && asset.Height == 32,
         "tombstone.sprite" or "tombstone-cross.sprite" => asset.Width == 16 && asset.Height == 24,
         "player-burning-1.sprite" or "player-burning-2.sprite" or "player-burning-3.sprite" or "player-burning-4.sprite"

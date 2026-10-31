@@ -16,7 +16,7 @@ public sealed class ZombieTests : GameTestBase
     for (int index = 0; index < paths.Length; index++)
     {
       var level = Level.Load(paths[index]);
-      Assert.AreEqual(index >= 3 && level.Background != BackgroundTheme.Underworld && level.BossSpawns.Count == 0 && level.OldManSpawns.Count == 0, level.ZombieSpawns.Count > 0, paths[index]);
+      Assert.AreEqual(index >= 3 && level.Section is 1 or 2 && level.BossSpawns.Count == 0 && level.OldManSpawns.Count == 0, level.ZombieSpawns.Count > 0, paths[index]);
     }
   }
 

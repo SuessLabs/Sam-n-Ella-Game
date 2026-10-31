@@ -61,7 +61,7 @@ public sealed class SectionLevelTests
   public void CampaignHasFiveLevelsThenBossAndSectionTwo()
   {
     string[] files = LevelSelectScreen.Discover(Path.Combine(AppContext.BaseDirectory, "Levels"));
-    CollectionAssert.AreEqual(new[] { "01-01", "01-02", "01-03", "01-04", "01-05", "01-06", "02-01", "02-02", "02-03", "02-04", "02-05", "02-06", "03-01", "03-02", "03-03", "03-04", "03-05", "03-06" },
+    CollectionAssert.AreEqual(new[] { "01-01", "01-02", "01-03", "01-04", "01-05", "01-06", "02-01", "02-02", "02-03", "02-04", "02-05", "02-06", "03-01", "03-02", "03-03", "03-04", "03-05", "03-06", "04-01" },
       files.Select(file => Level.Load(file).SectionLevelNumber).ToArray());
     foreach (string file in files)
     {

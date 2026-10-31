@@ -396,3 +396,27 @@ first while keeping the grown form. It carries between levels and is cleared
 on death or restart; 03-02's mandatory starting shotgun takes precedence.
 Pausing freezes the swing, and pipe travel cancels it. `W` is an editable whip
 pickup block in custom level maps. The whip has its own synthesized crack sound.
+
+### 04-01: Speed Runs
+
+Speed Runs starts Section 4 in daylight with a ten-second bathroom countdown.
+The timer is centered at the top of the screen and turns red at three seconds.
+Reach the toilet before it reaches zero, or the player soils their pants and
+loses a life. Pink Pepto bottles spaced along the route reset the clock to
+exactly ten seconds when collected; a bottle is consumed once per attempt.
+
+For extra help, stand on top of a marked pipe and press **Down or S** to poop
+into it and gain five seconds. The player briefly crouches, and the countdown
+continues during this relief animation. Each pipe grants its bonus only once
+per attempt; holding Down cannot farm time. Retrying restores all bottles,
+pipe bonuses, and the initial ten seconds. Pausing freezes all timers.
+
+The finish is a toilet instead of a flag. On reaching it, the countdown and
+combat freeze while the player sits down, a privacy curtain is pulled across,
+and two different fart sounds play. The level advances only after that sequence;
+if this is the last level, the credits and high-score prompt follow it.
+Both Sam and Ella have a seated pose, and the finish can be paused or restarted.
+
+Custom maps can enable `SpeedRun=true` (which sets the initial countdown to ten
+seconds), place `k` for pink Pepto bottles, and use `T` as the toilet goal.
+Ordinary levels keep their existing countdown and pipe behavior.

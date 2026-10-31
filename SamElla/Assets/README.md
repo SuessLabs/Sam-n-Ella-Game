@@ -143,3 +143,9 @@ Chain whip assets: `chain-whip.sprite` is the 16 x 16 handheld coiled weapon;
 `chain-link-1.sprite` and `chain-link-2.sprite` are 16 x 16 metal link textures
 used along the extending/retracting chain. All use the existing shared palette.
 The crack sound is synthesized by `GameSounds`.
+
+Speed Runs assets: `pepto-bottle.sprite` is a 16 x 16 pink medicine bottle using
+the new `I` palette color. `toilet.sprite`, `player-toilet-sit.sprite`, and
+`ella-toilet-sit.sprite` are editable 32 x 32 bathroom frames. The stall rail,
+closing purple curtain, occupied sign, and pipe relief puffs are drawn by the
+renderer. Two distinct short/long fart sounds are synthesized in `GameSounds`.

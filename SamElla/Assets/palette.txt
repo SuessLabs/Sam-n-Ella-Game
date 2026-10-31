@@ -23,3 +23,6 @@ P=8745B5
 Q=C58AE8
 U=61338B
 J=3B215C
+
+; Pepto pink.
+I=F47CB8
