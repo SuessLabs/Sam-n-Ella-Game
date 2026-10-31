@@ -25,10 +25,11 @@ public sealed class SpeedRunsTests : GameTestBase
     Assert.IsTrue(Enumerable.Range(0, level.Width).Any(x => level.Tile(x, 19) == 'T'));
     Assert.IsFalse(Enumerable.Range(0, level.Height).Any(y => Enumerable.Range(0, level.Width).Any(x => level.Tile(x, y) == 'G')));
     int[] bottles = Enumerable.Range(0, level.Width).Where(x => level.Tile(x, 19) == 'k').ToArray();
-    Assert.IsTrue(bottles.Length >= 6);
-    Assert.IsTrue(bottles.Zip(bottles.Skip(1), (left, right) => right - left).All(gap => gap is >= 50 and <= 60));
+    CollectionAssert.AreEqual(new[] { 100, 196, 292 }, bottles);
+    Assert.IsTrue(bottles.Zip(bottles.Skip(1), (left, right) => right - left).All(gap => gap == 96));
     Assert.HasCount(8, level.EnemySpawns);
-    Assert.HasCount(2, level.WormSpawns);
+    Assert.HasCount(4, level.WormSpawns);
+    Assert.HasCount(4, level.FlySpawns);
     Assert.IsTrue(Enumerable.Range(0, level.Width).Count(x => level.Tile(x, 19) == 'B') >= 16);
     var game = new Game([SourcePath]);
     int reliefPipes = Enumerable.Range(0, level.Height).Sum(y => Enumerable.Range(0, level.Width)
@@ -199,7 +200,7 @@ public sealed class SpeedRunsTests : GameTestBase
   [TestMethod]
   public void PinkBottlesRenderAndCountdownIsCenteredAtTop()
   {
-    var game = new Game([SourcePath]);
+    var game = CountdownMap(bottle: true);
     var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"));
     renderer.Draw(game, 0, 0);
     var expected = new PixelBuffer(PixelRenderer.Width, PixelRenderer.Height);
@@ -228,6 +229,7 @@ public sealed class SpeedRunsTests : GameTestBase
     }
 
     var sounds = new List<GameSound>();
+    var refillTimes = new List<int>();
     game.SoundRequested += sounds.Add;
     // Patrol phases vary. Try a few launch timings for the same route.
     int attempts = collectBottles ? 61 : 1;
@@ -237,6 +239,7 @@ public sealed class SpeedRunsTests : GameTestBase
       {
         game.Restart();
         sounds.Clear();
+        refillTimes.Clear();
         Tick(game, delay);
       }
 
@@ -251,7 +254,10 @@ public sealed class SpeedRunsTests : GameTestBase
         if (game.Grounded && groundedTicks >= 2 && (obstacle || pit || enemyAhead))
           game.QueueJump();
 
+        int previousClock = game.LevelTicksRemaining;
         game.Update(1, true);
+        if (game.LevelTicksRemaining > previousClock)
+          refillTimes.Add(previousClock - 1);
       }
     }
 
@@ -259,6 +265,9 @@ public sealed class SpeedRunsTests : GameTestBase
     {
       Assert.IsTrue(game.Won, $"Stopped at ({game.X:F2},{game.Y:F2}), timer {game.LevelTicksRemaining}, dying={game.IsDying}.");
       Assert.AreEqual(3, game.Lives);
+      Assert.HasCount(3, refillTimes);
+      Assert.IsTrue(refillTimes.All(ticks => ticks is >= 90 and <= 135),
+        $"A running player should reach bottles with about two seconds left: {string.Join(", ", refillTimes)} ticks.");
       Assert.AreEqual(1, sounds.Count(sound => sound == GameSound.FartShort));
       Assert.AreEqual(1, sounds.Count(sound => sound == GameSound.FartLong));
     }
