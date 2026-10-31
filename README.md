@@ -106,14 +106,14 @@ assets while the release is still a draft, before publishing it.
 
 | Merged into | Version | Tag | GitHub publication |
 | --- | --- | --- | --- |
-| `develop` | Increment the fourth component first | `v0.7.0.108-develop` | Pre-release |
+| `develop` | Increment the fourth component first | `v0.7.0.108-pre` | Pre-release |
 | `master` | Use the version already promoted from develop | `v0.7.0.108` | Stable, marked Latest |
 
 Merging a PR into `develop` now runs the existing build-version increment,
 then builds and tests that exact versioned commit, checks the native installer
 hook, and publishes a GitHub **Pre-release** with the installer, update feed,
-packages, and standalone ZIP. Tags use `v<FileVersion>-develop`, for example
-`v0.7.0.108-develop`. Closing an unmerged PR does not publish anything.
+packages, and standalone ZIP. Tags use `v<FileVersion>-pre`, for example
+`v0.7.0.108-pre`. Closing an unmerged PR does not publish anything.
 
 The tag is created only after the build succeeds. Assets upload to a draft
 before publication, and these prereleases never replace the stable Latest
@@ -123,7 +123,7 @@ Existing tags pointing at another commit are rejected rather than moved.
 
 Merging into `master` runs the same build, tests, and packaging against the
 exact master merge commit, then publishes a separate stable release marked
-**Latest**. It does not increment the version again. Its tag has no `-develop`
+**Latest**. It does not increment the version again. Its tag has no `-pre`
 suffix, and the earlier develop prerelease remains available. Publish each
 stable version once; a different commit cannot reuse an existing stable tag.
 

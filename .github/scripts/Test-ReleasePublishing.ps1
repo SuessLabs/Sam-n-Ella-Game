@@ -30,7 +30,7 @@ function Reset-Mock([string]$Channel = 'Develop')
 {
   $global:PrereleaseTestState = @{
     IsPrerelease = $Channel -eq 'Develop'
-    ExpectedTag = if ($Channel -eq 'Develop') { 'v0.7.0.108-develop' } else { 'v0.7.0.108' }
+    ExpectedTag = if ($Channel -eq 'Develop') { 'v0.7.0.108-pre' } else { 'v0.7.0.108' }
     TagCommit = $null; Release = $null; Uploaded = $false; FailUpload = $false
     FailApi = $false; Annotated = $false
     Calls = [Collections.Generic.List[object]]::new()
