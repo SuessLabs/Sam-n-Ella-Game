@@ -29,6 +29,9 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      commit: ${{ steps.bump.outputs.commit }}
     steps:
       - name: Check out develop and its history
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -39,6 +42,7 @@ jobs:
           token: ${{ secrets.VERSION_BUMP_TOKEN || github.token }}
 
       - name: Increment the fourth version component
+        id: bump
         shell: pwsh
         env:
           MERGED_PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -48,3 +52,14 @@ jobs:
             -RepositoryPath $env:GITHUB_WORKSPACE `
             -PullRequestNumber ([int]$env:MERGED_PR_NUMBER) `
             -MergeCommit $env:MERGE_COMMIT
+
+  prerelease:
+    needs: increment
+    permissions:
+      contents: write
+    uses: ./.github/workflows/publish-release.yml
+    with:
+      release-ref: ${{ needs.increment.outputs.commit }}
+      release-channel: Develop
+      release-version: ${{ needs.increment.outputs.version }}
+      pull-request-number: ${{ github.event.pull_request.number }}

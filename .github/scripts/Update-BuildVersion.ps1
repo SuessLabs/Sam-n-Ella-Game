@@ -2,7 +2,7 @@
 
 <#
 .SYNOPSIS
-Increments NetMan's fourth version component once per merged develop PR.
+Increments SamElla's fourth version component once per merged develop PR.
 .DESCRIPTION
 Use only in a dedicated, clean CI checkout. Fetches develop, commits the version
 change, and pushes normally. A commit trailer makes reruns idempotent. Rejected
@@ -29,7 +29,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 $repo = [System.IO.Path]::GetFullPath($RepositoryPath)
-$projectRelativePath = 'NetMan/NetMan.csproj'
+$projectRelativePath = 'SamElla/SamElla.csproj'
 $projectPath = Join-Path $repo $projectRelativePath
 
 function Invoke-RepositoryGit
@@ -56,7 +56,7 @@ function Read-ProjectVersion
   $assemblyNodes = $document.SelectNodes('/Project/PropertyGroup/AssemblyVersion')
   if ($fileNodes.Count -ne 1 -or $assemblyNodes.Count -ne 1)
   {
-    throw 'Expected exactly one FileVersion and one AssemblyVersion in NetMan.csproj.'
+    throw 'Expected exactly one FileVersion and one AssemblyVersion in SamElla.csproj.'
   }
   $version = $fileNodes[0].InnerText.Trim()
   if ($version -notmatch '^\d+\.\d+\.\d+\.\d+$' -or $assemblyNodes[0].InnerText.Trim() -ne $version)
@@ -77,7 +77,8 @@ function Report-Version
 
   if ($env:GITHUB_OUTPUT)
   {
-    $text = "version=$Version`nupdated=$($Updated.ToString().ToLowerInvariant())`n"
+    $commit = (Invoke-RepositoryGit -Arguments @('rev-parse', 'HEAD')).Output
+    $text = "version=$Version`ncommit=$commit`nupdated=$($Updated.ToString().ToLowerInvariant())`n"
     [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, $text, [System.Text.UTF8Encoding]::new($false))
   }
 }
@@ -112,13 +113,15 @@ for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++)
   $processed = (Invoke-RepositoryGit -Arguments @('log', '-1', '--format=%H', '--extended-regexp', "--grep=$marker", 'HEAD')).Output
   if ($processed.Length -ne 0)
   {
+    # A rerun must release this PR's versioned commit, even after later merges.
+    $null = Invoke-RepositoryGit -Arguments @('switch', '--detach', $processed)
     $current = Read-ProjectVersion
-    Write-Host "PR #$PullRequestNumber was already versioned. Current version: $($current.Version)."
+    Write-Host "PR #$PullRequestNumber was already versioned as $($current.Version) at $processed."
     Report-Version -Version $current.Version -Updated $false
     return
   }
 
-  foreach ($path in @((Join-Path $repo 'NetMan'), $projectPath))
+  foreach ($path in @((Join-Path $repo 'SamElla'), $projectPath))
   {
     if (((Get-Item -LiteralPath $path -Force).Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0)
     {

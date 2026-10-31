@@ -9,17 +9,17 @@ $cases = @{
 }
 foreach ($inputVersion in $cases.Keys)
 {
-  $actual = Get-NetManPackageVersion -FileVersion $inputVersion
+  $actual = Get-SamEllaPackageVersion -FileVersion $inputVersion
   if ($actual -ne $cases[$inputVersion])
   {
     throw "Unexpected mapping: $inputVersion -> $actual"
   }
 }
-if ([version](Get-NetManPackageVersion '0.5.0.65535') -ge [version](Get-NetManPackageVersion '0.5.1.0'))
+if ([version](Get-SamEllaPackageVersion '0.5.0.65535') -ge [version](Get-SamEllaPackageVersion '0.5.1.0'))
 {
   throw 'Revision rollover must increase the update package version.'
 }
 $rejected = $false
-try { Get-NetManPackageVersion '0.5.0.65536' | Out-Null } catch { $rejected = $true }
+try { Get-SamEllaPackageVersion '0.5.0.65536' | Out-Null } catch { $rejected = $true }
 if (-not $rejected) { throw 'Invalid Windows version was accepted.' }
 Write-Host 'Package version mapping checks passed.'

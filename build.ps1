@@ -2,12 +2,12 @@
 
 <#
 .SYNOPSIS
-Builds and packages NetMan as a size-optimized, trimmed Native AOT executable.
+Builds and packages Sam n' Ella as a size-optimized, trimmed Native AOT executable.
 .DESCRIPTION
 Run on Windows with the .NET 10 SDK and Visual Studio's Desktop development
 with C++ workload installed. Paths are based on this script, not the current
 directory. The first three FileVersion components determine the archive name.
-Output: Publish/NetMan-vX.Y.Z/, Publish/NetMan-vX.Y.Z.zip, and
+Output: Publish/SamElla-vX.Y.Z/, Publish/SamElla-vX.Y.Z.zip, and
 Publish/Velopack/<runtime>/ containing the installer, update feed, and packages.
 .EXAMPLE
 .\build.ps1
@@ -15,6 +15,10 @@ Publish/Velopack/<runtime>/ containing the installer, update feed, and packages.
 .\build.ps1 -Runtime win-arm64 -SkipTests
 .EXAMPLE
 .\build.ps1 -Run
+.EXAMPLE
+.\build.ps1 -SelfSign
+.EXAMPLE
+.\build.ps1 -Offline
 #>
 
 [CmdletBinding()]
@@ -26,7 +30,18 @@ param(
 
   [switch]$SkipInstaller,
 
-  [switch]$Run
+  [switch]$Offline,
+
+  [switch]$Run,
+
+  [string]$PublishDirectory = (Join-Path $PSScriptRoot 'Publish'),
+
+  [switch]$SelfSign,
+
+  [string]$SigningCertificateThumbprint = '',
+
+  [ValidatePattern('^https?://[^\s"\r\n]+$')]
+  [string]$TimestampUrl = 'http://timestamp.digicert.com'
 )
 
 Set-StrictMode -Version Latest
@@ -36,10 +51,28 @@ function Invoke-DotNet
 {
   param([string[]]$Arguments)
 
+  if ($Offline)
+  {
+    if ($Arguments[0] -in @('build', 'test', 'publish'))
+    {
+      # Restore from the local package cache even when obj/ has been cleaned.
+      $Arguments += @("-p:RestoreConfigFile=$offlineConfigPath", '-p:NuGetAudit=false')
+    }
+    elseif ($Arguments[0] -eq 'tool' -and $Arguments[1] -eq 'restore')
+    {
+      $Arguments += @('--configfile', $offlineConfigPath)
+    }
+  }
+
   & dotnet @Arguments | Out-Host
 
   if ($LASTEXITCODE -ne 0)
   {
+    if ($Offline)
+    {
+      throw "Offline dotnet $($Arguments[0]) failed (exit code $LASTEXITCODE). Offline builds require cached dependencies and installed build tools. Run .\build.bat -Runtime $Runtime while connected first, then retry -Offline. See the output above for the missing dependency or build error. No new release was packaged."
+    }
+
     throw "dotnet $($Arguments[0]) failed (exit code $LASTEXITCODE). No new release was packaged; see the build output above."
   }
 }
@@ -103,7 +136,7 @@ function Assert-PublishChild
 
 if ($env:OS -ne 'Windows_NT')
 {
-  throw 'NetMan currently has a Windows backend. Build this Native AOT release on Windows.'
+  throw "Sam n' Ella currently has a Windows backend. Build this Native AOT release on Windows."
 }
 
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue))
@@ -111,9 +144,42 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue))
   throw 'The .NET 10 SDK is required. Install it and ensure dotnet is on PATH.'
 }
 
-$projectPath = Join-Path $PSScriptRoot 'NetMan/NetMan.csproj'
-$testProjectPath = Join-Path $PSScriptRoot 'NetMan.Tests/NetMan.Tests.csproj'
-$publishRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'Publish'))
+$offlineConfigPath = Join-Path $PSScriptRoot 'scripts/NuGet.Offline.config'
+
+if ($Offline)
+{
+  if ($SelfSign -or $SigningCertificateThumbprint)
+  {
+    throw 'Offline builds cannot use signing options because signing requires an online timestamp server. Omit -SelfSign/-SigningCertificateThumbprint, or build without -Offline.'
+  }
+
+  Write-Host 'Offline build: using cached packages only; NuGet feeds, auditing, and Velopack update checks are disabled.'
+}
+
+$signingCertificate = $null
+$signTool = $null
+$signParameters = $null
+
+if ($SelfSign -or $SigningCertificateThumbprint)
+{
+  . (Join-Path $PSScriptRoot 'scripts/CodeSigning.ps1')
+  $signTool = Get-SamEllaSignTool
+  $signingCertificate = Get-SamEllaSigningCertificate -SelfSign:$SelfSign -Thumbprint $SigningCertificateThumbprint
+  $signParameters = "/sha1 $($signingCertificate.Thumbprint) /s My /fd SHA256 /td SHA256 /tr $TimestampUrl"
+  Write-Host "Signing with: $($signingCertificate.Subject) [$($signingCertificate.Thumbprint)]"
+
+  if ($SelfSign)
+  {
+    Write-Warning 'Self-signing does not establish public Windows trust or remove SmartScreen warnings.'
+    $certificateDirectory = Join-Path $PSScriptRoot 'output/Signing'
+    New-Item -ItemType Directory -Path $certificateDirectory -Force | Out-Null
+    Export-Certificate -Cert $signingCertificate -FilePath (Join-Path $certificateDirectory 'SamElla-SelfSigned.cer') -Force | Out-Null
+  }
+}
+
+$projectPath = Join-Path $PSScriptRoot 'SamElla/SamElla.csproj'
+$testProjectPath = Join-Path $PSScriptRoot 'SamElla.Tests/SamElla.Tests.csproj'
+$publishRoot = [System.IO.Path]::GetFullPath($PublishDirectory)
 
 if (-not (Test-Path -LiteralPath $projectPath -PathType Leaf))
 {
@@ -138,8 +204,8 @@ if ($fileVersion -notmatch '^\d+\.\d+\.\d+(\.\d+)?$')
 
 $versionParts = $fileVersion.Split('.')
 . (Join-Path $PSScriptRoot 'scripts/Get-PackageVersion.ps1')
-$packageVersion = Get-NetManPackageVersion -FileVersion $fileVersion
-$releaseName = 'NetMan-v' + ($versionParts[0..2] -join '.')
+$packageVersion = Get-SamEllaPackageVersion -FileVersion $fileVersion
+$releaseName = 'SamElla-v' + ($versionParts[0..2] -join '.')
 $releasePath = Join-Path $publishRoot $releaseName
 $archivePath = Join-Path $publishRoot ($releaseName + '.zip')
 $stagingRoot = Join-Path $publishRoot ('.staging-' + [Guid]::NewGuid().ToString('N'))
@@ -181,7 +247,7 @@ try
     '--self-contained', 'true',
     '--output', $payloadPath,
     '--nologo',
-    '-p:NetManDistribution=true',
+    '-p:SamEllaDistribution=true',
     '-p:PublishAot=true',
     '-p:PublishTrimmed=true',
     '-p:TrimMode=full',
@@ -238,12 +304,25 @@ try
       Invoke-DotNet -Arguments @('tool', 'restore', '--tool-manifest', (Join-Path $PSScriptRoot '.config/dotnet-tools.json'))
       # Native AOT has no managed entry-point metadata for vpk to inspect. The application
       # calls VelopackApp.Run before normal startup; verify its fast-exit hook in native smoke tests.
-      Invoke-DotNet -Arguments @('tool', 'run', 'vpk', '--', 'pack',
-        '--packId', 'SuessLabs.NetMan', '--packTitle', 'NetMan',
+      $packArguments = @('tool', 'run', 'vpk', '--', 'pack',
+        '--packId', 'SuessLabs.SamElla', '--packTitle', 'Sam-Ella',
         '--packAuthors', 'Damian Suess, Xeno Innovations, (DBA) Suess Labs',
+        '--icon', (Join-Path $PSScriptRoot 'SamElla/Assets/AppIcon/app.ico'),
         '--packVersion', $packageVersion, '--packDir', $payloadPath,
         '--mainExe', $executableName, '--runtime', $Runtime,
         '--channel', $Runtime, '--outputDir', $stagedInstaller, '--skipVeloAppCheck')
+
+      if ($Offline)
+      {
+        $packArguments += '--skip-updates'
+      }
+
+      if ($signingCertificate)
+      {
+        $packArguments += @('--signParams', $signParameters)
+      }
+
+      Invoke-DotNet -Arguments $packArguments
     }
     finally
     {
@@ -252,6 +331,25 @@ try
     if (-not (Test-Path -LiteralPath (Join-Path $stagedInstaller ("releases." + $Runtime + '.json'))))
     {
       throw 'Velopack did not produce the expected update feed.'
+    }
+  }
+
+  if ($signingCertificate)
+  {
+    # Velopack signs its staging copies; the standalone release needs its own signature.
+    & $signTool sign /sha1 $signingCertificate.Thumbprint /s My /fd SHA256 /td SHA256 /tr $TimestampUrl (Join-Path $payloadPath $executableName)
+
+    if ($LASTEXITCODE -ne 0)
+    {
+      throw 'Signing the native executable failed. Existing releases were preserved.'
+    }
+
+    Assert-SamEllaSignature -Path (Join-Path $payloadPath $executableName) -Thumbprint $signingCertificate.Thumbprint
+
+    if (-not $SkipInstaller)
+    {
+      $setupPath = Join-Path $stagedInstaller ("SuessLabs.SamElla-$Runtime-Setup.exe")
+      Assert-SamEllaSignature -Path $setupPath -Thumbprint $signingCertificate.Thumbprint
     }
   }
 
@@ -304,5 +402,6 @@ finally
 if ($Run)
 {
   Write-Host "Launching $releaseName..."
-  Start-Process -FilePath (Join-Path $releasePath $executableName) -WorkingDirectory $releasePath -WindowStyle Hidden
+  # This is the interactive game: Hidden would suppress its first ShowWindow call.
+  Start-Process -FilePath (Join-Path $releasePath $executableName) -WorkingDirectory $releasePath -WindowStyle Normal
 }

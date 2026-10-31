@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>SamElla</AssemblyName>
+    <Title>Sam n' Ella</Title>
+    <Product>Sam n' Ella</Product>
+    <ApplicationIcon>Assets\AppIcon\app.ico</ApplicationIcon>
+    <Copyright>Copyright 2026 Xeno Innovations, Inc.</Copyright>
+    <PackageProjectUrl>https://github.com/SuessLabs/Sam-n-Ella-Game</PackageProjectUrl>
+    <Description>Sam n' Ella old-school side scrolling game</Description>
+    <BaseOutputPath>../output</BaseOutputPath>
+    <FileVersion>0.7.0.113</FileVersion>
+    <AssemblyVersion>0.7.0.113</AssemblyVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(SamEllaDistribution)' == 'true'">
+    <DefineConstants>$(DefineConstants);SAMELLA_DISTRIBUTION</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="SamElla.Tests" />
+    <Content Include="Levels\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="Assets\AppIcon\**\*" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+    <Content Include="ThirdPartyNotices.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(SamEllaDistribution)' == 'true'">
+    <Compile Remove="ArtExporter.cs" />
+    <Content Update="Assets\Previews\**\*;Assets\README.md" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Velopack" Version="1.2.158" />
+  </ItemGroup>
+</Project>

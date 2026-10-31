@@ -1,0 +1,31 @@
+name: Publish master as Latest
+
+on:
+  pull_request:
+    branches: [master]
+    types: [closed]
+  # Fork and Dependabot merges use the default branch's trusted workflow.
+  pull_request_target:
+    branches: [master]
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: >-
+      github.event.pull_request.merged == true &&
+      ((github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.user.login != 'dependabot[bot]') ||
+       (github.event_name == 'pull_request_target' &&
+        (github.event.pull_request.head.repo.full_name != github.repository ||
+         github.event.pull_request.user.login == 'dependabot[bot]')))
+    permissions:
+      contents: write
+    uses: ./.github/workflows/publish-release.yml
+    with:
+      release-ref: ${{ github.event.pull_request.merge_commit_sha }}
+      release-channel: Stable
+      pull-request-number: ${{ github.event.pull_request.number }}

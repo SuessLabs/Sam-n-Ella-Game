@@ -1,13 +1,13 @@
-# Learn.DosGame
+# Sam n' Ella development notes
 
-Active development lives in [NetMan](NetMan/README.md), a .NET pixel-art platformer with a native Windows game window and editable text levels. [NetMan-0.1](NetMan-0.1/README.md) preserves the original console version.
+Active development lives in [SamElla](../SamElla/README.md), a .NET pixel-art platformer with a native Windows game window and editable text levels. [NetMan-0.1](../Legacy/NetMan-0.1/README.md) preserves the original console version.
 
 ![](screen-shot.png)
 
 From this repository folder, run:
 
 ```powershell
-dotnet run --project .\NetMan\NetMan.csproj
+dotnet run --project .\SamElla\SamElla.csproj
 ```
 
 See the game README for controls, editable text levels, and development checks.
@@ -30,9 +30,9 @@ To publish and launch the game, double-click `build-exec.bat` or run:
 
 This runs the same Release build, tests, Native AOT publish, and ZIP packaging, then opens the newly published game. If any step fails, the game is not launched. Build options are forwarded, for example `.\build-exec.bat -SkipTests`. The PowerShell equivalent is `.\build.ps1 -Run`.
 
-It builds Release, runs the MSTest suite, and publishes a self-contained, trimmed Native AOT Windows x64 executable optimized for size. It then creates `Publish/NetMan-vX.Y.Z/` and `Publish/NetMan-vX.Y.Z.zip`. The ZIP contains that versioned directory with `NetMan.exe`, runtime assets, editable levels, and the license. No .NET installation is needed on the player's machine.
+It builds Release, runs the MSTest suite, and publishes a self-contained, trimmed Native AOT Windows x64 executable optimized for size. It then creates `Publish/SamElla-vX.Y.Z/` and `Publish/SamElla-vX.Y.Z.zip`. The ZIP contains that versioned directory with `SamElla.exe`, runtime assets, editable levels, and the license. No .NET installation is needed on the player's machine.
 
-The name comes from the first three components of `FileVersion` in `NetMan/NetMan.csproj` (Major.Minor.Revision). Change that property to change the package version. Rebuilding the same version replaces its generated folder and ZIP after publishing and compression succeed; older versions are retained. `Publish` is ignored by Git.
+The name comes from the first three components of `FileVersion` in `SamElla/SamElla.csproj` (Major.Minor.Revision). Change that property to change the package version. Rebuilding the same version replaces its generated folder and ZIP after publishing and compression succeed; older versions are retained. `Publish` is ignored by Git.
 
 Requirements: Windows, PowerShell 5.1 or later, the .NET 10 SDK, and Visual Studio 2022 or later with **Desktop development with C++**, including its default MSVC and Windows SDK components. The first Native AOT build also restores compiler/runtime packages from NuGet. See Microsoft's [Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/).
 
@@ -49,23 +49,23 @@ To reduce size, tests live in a separate project, and the distribution excludes 
 
 ## Tests
 
-`NetMan.Tests` uses MSTest.Sdk with Microsoft.Testing.Platform. From the repository root:
+`SamElla.Tests` uses MSTest.Sdk with Microsoft.Testing.Platform. From the repository root:
 
 ```powershell
-dotnet test --solution .\NetMan\NetMan.slnx
-dotnet test --project .\NetMan.Tests\NetMan.Tests.csproj --configuration Release
+dotnet test --solution .\SamElla.slnx
+dotnet test --project .\SamElla.Tests\SamElla.Tests.csproj --configuration Release
 ```
 
-Open `NetMan/NetMan.slnx` in Visual Studio to discover and run the tests in Test Explorer. Tests cover gameplay, collisions, reward and animation timing, both splatter effects, asset validation, and rendering without opening a game window. Each scenario has its own temporary level files, so tests can run independently and in parallel.
+Open `SamElla.slnx` in Visual Studio to discover and run the tests in Test Explorer. Tests cover gameplay, collisions, reward and animation timing, both splatter effects, asset validation, and rendering without opening a game window. Each scenario has its own temporary level files, so tests can run independently and in parallel.
 
 `global.json` selects the .NET 10 SDK family and the MTP runner. The first test run restores Microsoft's test packages from NuGet. These packages belong only to the test project and are not included in the game or release ZIP. `build.ps1` (and `build.bat`) runs Release tests before publishing and stops if any fail; `-SkipTests` explicitly bypasses them.
 
 
 ## Automatic build versions
 
-`.github/workflows/increment-develop-build.yml` increments the fourth version component after a pull request is merged into `develop`. For example, `0.4.0.60` becomes `0.4.0.61`. The workflow updates `FileVersion` and `AssemblyVersion` together in `NetMan/NetMan.csproj` and commits the change back to `develop` as `github-actions[bot]`. The first three components remain under your control. Opening a PR, adding commits to it, closing it without merging, and directly pushing a normal commit do not increment the version.
+`.github/workflows/increment-develop-build.yml` increments the fourth version component after a pull request is merged into `develop`. For example, `0.4.0.60` becomes `0.4.0.61`. The workflow updates `FileVersion` and `AssemblyVersion` together in `SamElla/SamElla.csproj` and commits the change back to `develop` as `github-actions[bot]`. The first three components remain under your control. Opening a PR, adding commits to it, closing it without merging, and directly pushing a normal commit do not increment the version.
 
-Each version commit records the PR number and merge commit. Rerunning a completed workflow does not increment again. Simultaneous merges use normal pushes with retries against the latest `develop`, so both merges receive an increment; the workflow never force-pushes. After a successful run, pull the latest `develop` to use its updated version locally. ZIP names keep their existing three-part format, such as `NetMan-v0.4.0.zip`.
+Each version commit records the PR number and merge commit. Rerunning a completed workflow does not increment again. Simultaneous merges use normal pushes with retries against the latest `develop`, so both merges receive an increment; the workflow never force-pushes. After a successful run, pull the latest `develop` to use its updated version locally. ZIP names keep their existing three-part format, such as `SamElla-v0.4.0.zip`.
 
 Enable GitHub Actions for the repository and allow this workflow's `contents: write` permission. The repository's branch rules must permit the automation identity to push the version commit to `develop`. If your rules require all changes through PRs, signed commits, or restricted push identities, configure an approved automation identity and its credentials rather than disabling those rules. The workflow uses the repository's built-in `GITHUB_TOKEN` by default. If your approved automation account needs a different token, store it as the repository secret `VERSION_BUMP_TOKEN`; checkout will use that token instead. Signing requirements need a signing step configured for the automation identity. The workflow does not change repository permissions or branch rules. A rejected push fails with an explanation and can be rerun after the repository policy is configured.
 

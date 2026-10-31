@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="SamElla/SamElla.csproj" />
+  <Folder Name="/Solution Items/">
+    <File Path="Docs/ideas.md" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="SamElla.Tests/SamElla.Tests.csproj" />
+  </Folder>
+</Solution>

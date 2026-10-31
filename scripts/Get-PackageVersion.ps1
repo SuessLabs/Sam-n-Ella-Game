@@ -1,4 +1,4 @@
-function Get-NetManPackageVersion
+function Get-SamEllaPackageVersion
 {
   param([Parameter(Mandatory = $true)][version]$FileVersion)
 

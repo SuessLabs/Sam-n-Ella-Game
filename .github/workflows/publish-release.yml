@@ -3,13 +3,31 @@ name: Build installer and GitHub updates
 on:
   release:
     types: [published]
+  workflow_call:
+    inputs:
+      release-ref:
+        description: Exact versioned develop commit or master merge commit to build
+        required: true
+        type: string
+      release-version:
+        description: Expected four-part version, or empty to read it from the merged master project
+        required: false
+        default: ""
+        type: string
+      release-channel:
+        description: Develop for prereleases, Stable for Latest
+        required: true
+        type: string
+      pull-request-number:
+        required: true
+        type: number
 
 permissions:
   contents: read
 
 jobs:
   windows-release:
-    if: github.event.release.immutable != true
+    if: github.event_name != 'release' || github.event.release.immutable != true
     runs-on: windows-latest
     timeout-minutes: 30
     permissions:
@@ -18,7 +36,7 @@ jobs:
       - name: Check out the released version
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ inputs.release-ref || github.event.release.tag_name }}
           persist-credentials: false
 
       - name: Set up .NET 10
@@ -26,9 +44,24 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Verify package version mapping
+      - name: Verify release version and package mapping
+        id: metadata
         shell: pwsh
-        run: ./scripts/Test-PackageVersion.ps1
+        env:
+          REQUESTED_VERSION: ${{ inputs.release-version }}
+          RELEASE_CHANNEL: ${{ inputs.release-channel }}
+        run: |
+          ./scripts/Test-PackageVersion.ps1
+          [xml]$project = Get-Content SamElla/SamElla.csproj
+          $actual = [string]($project.Project.PropertyGroup.FileVersion | Where-Object { $_ } | Select-Object -First 1)
+          if ($env:REQUESTED_VERSION -and $actual -ne $env:REQUESTED_VERSION) {
+            throw 'Checked-out version does not match the requested release version.'
+          }
+          if ($env:RELEASE_CHANNEL) {
+            if ($env:RELEASE_CHANNEL -notin @('Develop', 'Stable')) { throw 'Unknown release channel.' }
+            ./.github/scripts/Test-ReleasePublishing.ps1
+          }
+          "version=$actual" >> $env:GITHUB_OUTPUT
 
       - name: Test, publish Native AOT, and package Velopack
         shell: pwsh
@@ -37,12 +70,12 @@ jobs:
       - name: Verify native installer bootstrap hook
         shell: pwsh
         run: |
-          [xml]$project = Get-Content NetMan/NetMan.csproj
+          [xml]$project = Get-Content SamElla/SamElla.csproj
           $version = [string]($project.Project.PropertyGroup.FileVersion | Where-Object { $_ } | Select-Object -First 1)
-          $name = 'NetMan-v' + (($version.Split('.'))[0..2] -join '.')
-          $native = Join-Path $PWD "Publish/$name/NetMan.exe"
+          $name = 'SamElla-v' + (($version.Split('.'))[0..2] -join '.')
+          $native = Join-Path $PWD "Publish/$name/SamElla.exe"
           . ./scripts/Get-PackageVersion.ps1
-          $packageVersion = Get-NetManPackageVersion $version
+          $packageVersion = Get-SamEllaPackageVersion $version
           $process = Start-Process -FilePath $native -ArgumentList '--veloapp-install', $packageVersion -WindowStyle Hidden -PassThru
           if (-not $process.WaitForExit(10000)) {
             Stop-Process -Id $process.Id
@@ -55,9 +88,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          RELEASE_CHANNEL: ${{ inputs.release-channel }}
+          RELEASE_COMMIT: ${{ inputs.release-ref }}
+          MERGED_PR_NUMBER: ${{ inputs.pull-request-number }}
         run: |
           $assets = @(Get-ChildItem Publish/Velopack/win-x64 -File | ForEach-Object FullName)
-          $assets += @(Get-ChildItem Publish -File -Filter 'NetMan-v*.zip' | ForEach-Object FullName)
+          $assets += @(Get-ChildItem Publish -File -Filter 'SamElla-v*.zip' | ForEach-Object FullName)
           if ($assets.Count -lt 4) { throw 'Release assets are missing.' }
-          gh release upload --repo "$env:GITHUB_REPOSITORY" --clobber -- "$env:RELEASE_TAG" @assets
-          if ($LASTEXITCODE -ne 0) { throw 'GitHub release upload failed.' }
+          if ($env:RELEASE_CHANNEL) {
+            & ./.github/scripts/Publish-GitHubRelease.ps1 `
+              -Repository $env:GITHUB_REPOSITORY `
+              -Commit $env:RELEASE_COMMIT `
+              -Version $env:RELEASE_VERSION `
+              -Channel $env:RELEASE_CHANNEL `
+              -PullRequestNumber ([int]$env:MERGED_PR_NUMBER) `
+              -AssetPaths $assets
+          } else {
+            gh release upload --repo "$env:GITHUB_REPOSITORY" --clobber -- "$env:RELEASE_TAG" @assets
+            if ($LASTEXITCODE -ne 0) { throw 'GitHub release upload failed.' }
+          }

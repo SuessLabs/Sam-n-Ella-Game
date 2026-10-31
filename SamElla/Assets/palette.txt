@@ -1,0 +1,28 @@
+; Shared palette. A symbol is one opaque pixel; dot is transparent.
+K=18243B
+N=283D62
+B=3E6693
+C=6FBBD1
+T=238D93
+A=57C4B0
+W=F8F0D9
+S=F1BB8B
+H=C97F60
+Y=FFDA73
+O=E69A43
+R=B85A47
+D=754A44
+G=367C58
+L=82BD58
+V=C1DC79
+E=E83B3B
+F=981D3B
+
+; Ella's purple clothing and hair.
+P=8745B5
+Q=C58AE8
+U=61338B
+J=3B215C
+
+; Pepto pink.
+I=F47CB8

@@ -24,9 +24,15 @@
     * Fall time
     * Snow
   * Sub-levels
-  * Level start shows title page
+  * ~~Level start shows title page~~
+  * ~~Boss levels~~
   * Fast moving background on "windy levels"
   * Enhanced level designer
   * Sloped ramps to walk up/down
 * Save game stats (sqlite?)
-* (Squirrel) Installer
+* ~~(Squirrel) Installer~~
+  * [Sign application](https://signpath.org/)
+* Downloads
+  * Make all 'develop' PRs pre-release (automatically)
+  * Auto-tag and make artifacts available
+  * Pushes to `master` increment Minor version number
