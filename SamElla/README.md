@@ -400,6 +400,9 @@ pickup block in custom level maps. The whip has its own synthesized crack sound.
 ### 04-01: Speed Runs
 
 Speed Runs starts Section 4 in daylight with a ten-second bathroom countdown.
+The route includes eight walkers, two worms, brick hurdles, and exactly two
+relief pipes. Six pink bottles are spaced 54-60 blocks apart; walkers patrol
+the lower brick hurdles so the pit landing areas stay clear.
 The timer is centered at the top of the screen and turns red at three seconds.
 Reach the toilet before it reaches zero, or the player soils their pants and
 loses a life. Pink Pepto bottles spaced along the route reset the clock to

@@ -26,7 +26,14 @@ public sealed class SpeedRunsTests : GameTestBase
     Assert.IsFalse(Enumerable.Range(0, level.Height).Any(y => Enumerable.Range(0, level.Width).Any(x => level.Tile(x, y) == 'G')));
     int[] bottles = Enumerable.Range(0, level.Width).Where(x => level.Tile(x, 19) == 'k').ToArray();
     Assert.IsTrue(bottles.Length >= 6);
-    Assert.IsTrue(bottles.Zip(bottles.Skip(1), (left, right) => right - left).All(gap => gap <= 60));
+    Assert.IsTrue(bottles.Zip(bottles.Skip(1), (left, right) => right - left).All(gap => gap is >= 50 and <= 60));
+    Assert.HasCount(8, level.EnemySpawns);
+    Assert.HasCount(2, level.WormSpawns);
+    Assert.IsTrue(Enumerable.Range(0, level.Width).Count(x => level.Tile(x, 19) == 'B') >= 16);
+    var game = new Game([SourcePath]);
+    int reliefPipes = Enumerable.Range(0, level.Height).Sum(y => Enumerable.Range(0, level.Width)
+      .Count(x => game.CanUseReliefPipe(x, y) && level.Tile(x - 1, y) != level.Tile(x, y)));
+    Assert.AreEqual(2, reliefPipes);
     string[] files = LevelSelectScreen.Discover(Path.Combine(AppContext.BaseDirectory, "Levels"));
     Assert.AreEqual(SourcePath, files[^1]);
   }
@@ -213,24 +220,39 @@ public sealed class SpeedRunsTests : GameTestBase
     var game = new Game([SourcePath]);
     if (!collectBottles)
     {
+      game.Enemies.Clear(); // Isolate timeout from combat in the no-refill check.
       for (int y = 0; y < game.Level.Height; y++)
         for (int x = 0; x < game.Level.Width; x++)
           if (game.Level.Tile(x, y) == 'k')
             game.Level.Clear(x, y);
     }
 
-    int groundedTicks = 0;
     var sounds = new List<GameSound>();
     game.SoundRequested += sounds.Add;
-    for (int tick = 0; tick < 6000 && !game.Won && !game.IsDying; tick++)
+    // Patrol phases vary. Try a few launch timings for the same route.
+    int attempts = collectBottles ? 61 : 1;
+    for (int delay = 0; delay < attempts && !game.Won; delay++)
     {
-      groundedTicks = game.Grounded ? groundedTicks + 1 : 0;
-      bool obstacle = Enumerable.Range(1, 3).Any(ahead => game.Level.Solid((int)Math.Floor(game.X) + ahead, (int)Math.Floor(game.Y + game.PlayerHeight - 0.2)));
-      bool pit = Enumerable.Range(1, 2).Any(ahead => !game.Level.Solid((int)Math.Floor(game.X + Game.BodyWidth) + ahead, 20));
-      if (game.Grounded && groundedTicks >= 2 && (obstacle || pit))
-        game.QueueJump();
+      if (delay > 0)
+      {
+        game.Restart();
+        sounds.Clear();
+        Tick(game, delay);
+      }
 
-      game.Update(1, true);
+      int groundedTicks = 0;
+      for (int tick = 0; tick < 6000 && !game.Won && !game.IsDying; tick++)
+      {
+        groundedTicks = game.Grounded ? groundedTicks + 1 : 0;
+        bool obstacle = Enumerable.Range(1, 3).Any(ahead => game.Level.Solid((int)Math.Floor(game.X) + ahead, (int)Math.Floor(game.Y + game.PlayerHeight - 0.2)));
+        bool pit = Enumerable.Range(1, 2).Any(ahead => !game.Level.Solid((int)Math.Floor(game.X + Game.BodyWidth) + ahead, 20));
+        bool enemyAhead = game.Enemies.Any(enemy => enemy.CanInteract && enemy.X + Game.BodyWidth > game.X
+          && enemy.X - game.X < 3 && enemy.Y + enemy.BodyHeight > game.Y);
+        if (game.Grounded && groundedTicks >= 2 && (obstacle || pit || enemyAhead))
+          game.QueueJump();
+
+        game.Update(1, true);
+      }
     }
 
     if (collectBottles)
