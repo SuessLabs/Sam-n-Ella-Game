@@ -8,6 +8,8 @@ public sealed class Enemy
   public const int CaneWaveDurationTicks = 18;
   public const double CaneWaveRange = 2;
   public const int BossThrowIntervalTicks = 100;
+  public const int BossDodgeDurationTicks = 18;
+  public const double BossDodgeSpeed = 14;
   public const int SquashDurationTicks = 60;
   public const int HopIntervalTicks = 24;
   public const int StompStunTicks = 20;
@@ -85,6 +87,9 @@ public sealed class Enemy
   public int EmergenceFrameIndex => Math.Min(2, (CrawlerEmergenceDurationTicks - EmergenceTicksRemaining) / 20);
   public bool CanInteract => Alive && !IsBuried && !IsEmerging;
 
+  public int BossHeadStomps { get; private set; }
+  public int BossDodgeTicksRemaining { get; internal set; }
+
   public int Health { get; private set; }
 
   public bool Alive { get; private set; } = true;
@@ -142,7 +147,20 @@ public sealed class Enemy
     if (damage is < 1 or > 10)
       throw new ArgumentOutOfRangeException(nameof(damage));
 
-    return Hit(damage);
+    bool defeated = Hit(damage);
+    if (IsBoss && Alive)
+    {
+      BossHeadStomps++;
+      if (BossHeadStomps % 2 == 0)
+      {
+        BossDodgeTicksRemaining = BossDodgeDurationTicks;
+        StunTicksRemaining = 0;
+        CaneSwingTicksRemaining = 0;
+        AirWaveLength = 0;
+      }
+    }
+
+    return defeated;
   }
 
   internal bool Hit(int damage)
@@ -172,6 +190,7 @@ public sealed class Enemy
 
     AirWaveLength = 0;
     CaneSwingTicksRemaining = 0;
+    BossDodgeTicksRemaining = 0;
     Alive = false;
     Health = 0;
     VelocityY = 0;

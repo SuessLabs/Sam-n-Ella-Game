@@ -364,7 +364,8 @@ invulnerability rules. Boss attacks sleep until approached; a stomp interrupts
 attacks. Stomps and weapons use normal damage, with small-player boss stomps
 always dealing one point.
 
-The boss cycles the six lines in `Assets/emo-quotes.txt`. Defeating a punk or
+Punks and the boss share the 21 lines in `Assets/enemy-quotes.txt`. Punks
+start speaking when approached, with different starting lines for each spawn. Defeating a punk or
 the boss plays a synthesized voiced "uhhhh" and displays
 "it's everyone else's fault not mine" for three seconds. Pausing freezes
 quotes, projectiles, and pipe travel; retrying clears them. Underworld music
@@ -423,3 +424,20 @@ Both Sam and Ella have a seated pose, and the finish can be paused or restarted.
 Custom maps can enable `SpeedRun=true` (which sets the initial countdown to ten
 seconds), place `k` for pink Pepto bottles, and use `T` as the toilet goal.
 Ordinary levels keep their existing countdown and pipe behavior.
+
+### Boss evasions and the expanded Emo Kid gauntlet
+
+03-06 is now 256 blocks long. Its middle section adds flies, worms, and both
+punk variants before the boss arena. The level offers a growth heart but no
+flamethrower, shotgun, or chain-whip pickups; carried weapons remain available.
+The exit pipe still returns the player to daylight after the boss is defeated.
+
+All bosses (Dung-Bag, Old Man, and Emo Kid) quickly dash away after every second
+surviving head stomp. The dash cancels stomp stun and cane attacks, lasts 0.3
+seconds, and moves at 14 blocks per second while respecting walls, ledges, and
+arena bounds. The player's stomp bounce remains, so standing still no longer
+lets the player repeatedly land on the same boss. Weapon hits do not count
+toward the two-stomp dodge. Pausing freezes it, and retrying resets the count.
+
+`Assets/enemy-quotes.txt` replaces `emo-quotes.txt` and contains the original six
+lines plus fifteen absurd hippie-themed lines, shared by punks and the Emo Kid.

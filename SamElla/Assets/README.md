@@ -135,7 +135,7 @@ frames. Each has a matching `-squashed.sprite`. The `punk-blue-*` and
 `punk-purple-*` sets are 24 x 32 walking, throwing, and flattened frames with
 colored mohawks; `emo-boss-*` is a larger 32 x 48 set with a long purple fringe.
 `beer-bottle.sprite` and `needle.sprite` are 16 x 16 projectiles. Actors face left
-and flip right. Boss taunts come from `emo-quotes.txt`; the death groan is
+and flip right. Punk and boss taunts come from `enemy-quotes.txt`; the death groan is
 synthesized in `GameSounds` and requires no downloaded sound file.
 
 Chain whip assets: `chain-whip.sprite` is the 16 x 16 handheld coiled weapon;
