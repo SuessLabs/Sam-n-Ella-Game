@@ -3,14 +3,18 @@ using SamElla.Updater;
 
 namespace SamElla.Screens;
 
-internal sealed class SettingsScreen(AudioSettings audio, UpdateSettings? updates = null)
+internal sealed class SettingsScreen(AudioSettings audio, UpdateSettings? updates = null, bool updatesSupported = true)
 {
-  private const int RowCount = 6;
+  private int RowCount => UpdatesSupported ? 6 : 5;
   private const int VolumeStep = 5;
 
   public AudioSettings Audio { get; } = audio;
 
   public UpdateSettings Updates { get; } = updates ?? new();
+
+  public bool UpdatesSupported { get; } = updatesSupported;
+
+  public int BackIndex => RowCount - 1;
 
   public bool IsActive { get; private set; }
 
@@ -49,7 +53,7 @@ internal sealed class SettingsScreen(AudioSettings audio, UpdateSettings? update
         case 0x27: // Right: on / increase volume
         case 0x0D: // Enter
         case 0x20: // Space
-          if (SelectedIndex == 5)
+          if (SelectedIndex == BackIndex)
           {
             if (code is 0x0D or 0x20)
             {

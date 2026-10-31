@@ -12,7 +12,7 @@ internal enum GameKey
   Down,
 }
 
-// Only this interface needs a new implementation to host the game on another OS.
+// Hosts provide input, frame presentation, and lifecycle alongside IGameAudio.
 internal interface IGameWindow : IDisposable
 {
   bool Active { get; }

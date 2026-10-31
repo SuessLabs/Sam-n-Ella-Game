@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../SamElla/**/*.cs"
+      Exclude="../SamElla/obj/**;../SamElla/bin/**;../SamElla/Program.cs;../SamElla/WindowsGameWindow.cs;../SamElla/Audio/WindowsGameAudio.cs;../SamElla/Updater/AppUpdates.cs;../SamElla/ArtExporter.cs"
+      Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <InternalsVisibleTo Include="SamElla" />
+    <InternalsVisibleTo Include="SamElla.Mobile" />
+    <InternalsVisibleTo Include="SamElla.Tests" />
+  </ItemGroup>
+</Project>

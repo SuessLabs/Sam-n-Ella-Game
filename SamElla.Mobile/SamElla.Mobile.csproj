@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0-android;net10.0-ios</TargetFrameworks>
+    <TargetFrameworks Condition="'$(MobileTargetFramework)' != ''">$(MobileTargetFramework)</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>SamElla.Mobile</RootNamespace>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationTitle>Sam n' Ella</ApplicationTitle>
+    <ApplicationId>com.suesslabs.samella</ApplicationId>
+    <ApplicationDisplayVersion>0.7.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">23.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SamElla.Core/SamElla.Core.csproj" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.20" />
+    <PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.4" />
+    <PackageReference Include="Plugin.Maui.Audio" Version="4.0.0" />
+    <MauiIcon Include="Resources/AppIcon/appicon.svg" Color="#17263F" />
+    <MauiSplashScreen Include="Resources/AppIcon/appicon.svg" Color="#17263F" BaseSize="128,128" />
+    <MauiAsset Include="../SamElla/Assets/**/*.sprite;../SamElla/Assets/**/*.txt"
+      Exclude="../SamElla/Assets/AppIcon/**;../SamElla/Assets/Previews/**"
+      LogicalName="Game/Assets/%(RecursiveDir)%(Filename)%(Extension)" />
+    <MauiAsset Include="../SamElla/Levels/*.txt" LogicalName="Game/Levels/%(Filename)%(Extension)" />
+    <MauiAsset Include="../SamElla/ThirdPartyNotices.txt" LogicalName="ThirdPartyNotices.txt" />
+  </ItemGroup>
+  <Target Name="CreateGameContentManifest" BeforeTargets="PrepareForBuild">
+    <ItemGroup>
+      <GameArt Include="../SamElla/Assets/**/*.sprite;../SamElla/Assets/**/*.txt" Exclude="../SamElla/Assets/AppIcon/**;../SamElla/Assets/Previews/**" />
+      <GameLevel Include="../SamElla/Levels/*.txt" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(IntermediateOutputPath)game-content.txt" Lines="@(GameArt->'Assets/%(RecursiveDir)%(Filename)%(Extension)');@(GameLevel->'Levels/%(Filename)%(Extension)')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup><MauiAsset Include="$(IntermediateOutputPath)game-content.txt" LogicalName="game-content.txt" /></ItemGroup>
+  </Target>
+</Project>
