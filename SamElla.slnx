@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="SamElla/SamElla.csproj" />
+  <Project Path="SamElla.Core/SamElla.Core.csproj" />
   <Folder Name="/Solution Items/">
     <File Path="Docs/ideas.md" />
     <File Path="README.md" />

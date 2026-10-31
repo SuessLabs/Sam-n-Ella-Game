@@ -6,7 +6,7 @@ namespace SamElla.Audio;
 // Native audio resources belong to a dedicated worker. Device operations may
 // block, so they must never run on the gameplay and input thread.
 [SupportedOSPlatform("windows")]
-internal sealed unsafe class WindowsGameAudio : IDisposable
+internal sealed unsafe class WindowsGameAudio : IGameAudio
 {
   [DllImport("winmm.dll", ExactSpelling = true)]
   private static extern uint waveOutClose(nint device);

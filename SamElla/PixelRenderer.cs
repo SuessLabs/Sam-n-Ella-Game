@@ -15,13 +15,15 @@ internal sealed class PixelRenderer
   private const uint Ink = 0xFF17263F;
   private const uint White = 0xFFF6F4DF;
   private static readonly string VersionLabel = "v" + System.Reflection.CustomAttributeExtensions
-    .GetCustomAttribute<System.Reflection.AssemblyFileVersionAttribute>(typeof(PixelRenderer).Assembly)!.Version;
+    .GetCustomAttribute<System.Reflection.AssemblyFileVersionAttribute>(System.Reflection.Assembly.GetEntryAssembly() ?? typeof(PixelRenderer).Assembly)!.Version;
   private readonly Dictionary<string, Sprite> _sprites = [];
+  private readonly bool _touchControls;
   private double _animationTime;
   private bool _facingLeft;
 
-  public PixelRenderer(string assetsPath)
+  public PixelRenderer(string assetsPath, bool touchControls = false)
   {
+    _touchControls = touchControls;
     var palette = Sprite.LoadPalette(Path.Combine(assetsPath, "palette.txt"));
 
     foreach (string name in new[]
@@ -179,7 +181,7 @@ internal sealed class PixelRenderer
         PixelFont.Draw(Frame, ">", left + 10, 126, Gold);
     }
 
-    DrawTitleText("LEFT/RIGHT PLAYER  UP/DOWN MENU  ENTER SELECT", 173, White, 1);
+    DrawTitleText(_touchControls ? "LEFT/RIGHT PLAYER  UP/DOWN MENU  OK SELECT" : "LEFT/RIGHT PLAYER  UP/DOWN MENU  ENTER SELECT", 173, White, 1);
 
     long ticks = (long)(title.Elapsed * 60);
     DrawCreditsRunner($"player-run-{animationFrame}", ticks, 0, 38, false, 224);
@@ -227,18 +229,21 @@ internal sealed class PixelRenderer
     DrawVolumeSlider("MUSIC VOLUME", 99, screen.Audio.MusicVolume, screen.SelectedIndex == 1);
     DrawAudioToggle("SOUND FX", 124, screen.Audio.SoundEffectsEnabled, screen.SelectedIndex == 2);
     DrawVolumeSlider("SOUND FX VOLUME", 150, screen.Audio.SoundEffectsVolume, screen.SelectedIndex == 3);
-    DrawAudioToggle("OPT-IN PRE-RELEASE", 169, screen.Updates.IncludePrereleases, screen.SelectedIndex == 4);
-    PixelFont.Draw(Frame, "(EXPERIMENTAL)", 52, 183, screen.SelectedIndex == 4 ? Gold : White);
-    DrawTitleText("UPDATE SETTING APPLIES NEXT LAUNCH", 197, White, 1);
+    if (screen.UpdatesSupported)
+    {
+      DrawAudioToggle("OPT-IN PRE-RELEASE", 169, screen.Updates.IncludePrereleases, screen.SelectedIndex == 4);
+      PixelFont.Draw(Frame, "(EXPERIMENTAL)", 52, 183, screen.SelectedIndex == 4 ? Gold : White);
+      DrawTitleText("UPDATE SETTING APPLIES NEXT LAUNCH", 197, White, 1);
+    }
 
     Frame.FillTranslucent(144, 207, 96, 17, Ink, 180);
-    if (screen.SelectedIndex == 5)
+    if (screen.SelectedIndex == screen.BackIndex)
       Frame.FillTranslucent(144, 207, 96, 17, Gold, 45);
 
-    DrawTitleText(screen.SelectedIndex == 5 ? "> BACK <" : "BACK", 212,
-      screen.SelectedIndex == 5 ? Gold : White, 1);
+    DrawTitleText(screen.SelectedIndex == screen.BackIndex ? "> BACK <" : "BACK", 212,
+      screen.SelectedIndex == screen.BackIndex ? Gold : White, 1);
 
-    DrawTitleText("ARROWS ADJUST  ENTER/SPACE TOGGLE  ESC BACK", 230, White, 1);
+    DrawTitleText(_touchControls ? "ARROWS ADJUST  OK TOGGLE  BACK CLOSE" : "ARROWS ADJUST  ENTER/SPACE TOGGLE  ESC BACK", 230, White, 1);
   }
 
   private void DrawAudioToggle(string label, int y, bool enabled, bool selected)
@@ -301,8 +306,8 @@ internal sealed class PixelRenderer
     }
 
     DrawTitleText($"PAGE {screen.Page + 1}/{screen.PageCount}  LEVELS {screen.Levels.Count}", 196, Gold, 1);
-    DrawTitleText("UP/DOWN SELECT  LEFT/RIGHT OR PGUP/PGDN PAGE", 213, White, 1);
-    DrawTitleText("ENTER PLAY  ESC BACK", 227, White, 1);
+    DrawTitleText(_touchControls ? "UP/DOWN SELECT  LEFT/RIGHT PAGE" : "UP/DOWN SELECT  LEFT/RIGHT OR PGUP/PGDN PAGE", 213, White, 1);
+    DrawTitleText(_touchControls ? "OK PLAY  BACK CLOSE" : "ENTER PLAY  ESC BACK", 227, White, 1);
   }
 
   public void DrawLevelStart(LevelStartScreen screen)
@@ -318,7 +323,7 @@ internal sealed class PixelRenderer
     DrawTitleText("UNCLE QUOTE", 155, Gold, 1);
     DrawWrappedCentered(screen.Quote, 170, White);
     Frame.Fill(12, 218, Width - 24, 1, 0xFF355575);
-    DrawTitleText("PRESS ANY KEY TO BEGIN", 227, Gold, 1);
+    DrawTitleText(_touchControls ? "TAP OK TO BEGIN" : "PRESS ANY KEY TO BEGIN", 227, Gold, 1);
   }
 
   public void DrawLeaderboard(LeaderboardScreen screen)
@@ -348,7 +353,7 @@ internal sealed class PixelRenderer
       DrawTitleText("A-Z / 0-9 / SPACE", 163, Gold, 2);
       DrawTitleText("UP/DOWN: CHARACTER", 184, White, 1);
       DrawTitleText("LEFT/RIGHT: POSITION", 195, White, 1);
-      DrawTitleText("ENTER: ACCEPT", 211, Gold, 1);
+      DrawTitleText(_touchControls ? "OK: ACCEPT" : "ENTER: ACCEPT", 211, Gold, 1);
       return;
     }
 
@@ -378,8 +383,8 @@ internal sealed class PixelRenderer
     }
 
     Frame.Fill(12, 210, Width - 24, 1, Gold);
-    string prompt = screen.Context == LeaderboardContext.Victory ? "PRESS ENTER FOR CREDITS" :
-      screen.Context == LeaderboardContext.GameOver ? "PRESS ENTER TO START OVER" : "ENTER / ESC BACK";
+    string prompt = screen.Context == LeaderboardContext.Victory ? (_touchControls ? "TAP OK FOR CREDITS" : "PRESS ENTER FOR CREDITS") :
+      screen.Context == LeaderboardContext.GameOver ? (_touchControls ? "TAP OK TO START OVER" : "PRESS ENTER TO START OVER") : (_touchControls ? "OK / BACK CLOSE" : "ENTER / ESC BACK");
     DrawTitleText(prompt, 224, Gold, 1);
   }
 
@@ -411,7 +416,7 @@ internal sealed class PixelRenderer
     DrawTitleText($"LEVEL {game.LevelLabel}  SCORE {game.Score:000000}  DEATHS {game.TotalDeaths}", 202, White, 1);
 
     Frame.Fill(12, 215, Width - 24, 1, 0xFFFF6B6B);
-    DrawTitleText("PRESS ENTER TO START OVER", 226, Gold, 1);
+    DrawTitleText((_touchControls ? "TAP OK TO START OVER" : "PRESS ENTER TO START OVER"), 226, Gold, 1);
   }
 
   private void DrawWrappedCentered(string text, int y, uint color, int maxLines = 3)
@@ -507,7 +512,7 @@ internal sealed class PixelRenderer
           int signX = x * TileSize - cameraX - 8;
           int signY = HeaderHeight + y * TileSize - cameraY - 20;
           Frame.Fill(signX - 2, signY - 2, 51, 11, Ink);
-          PixelFont.Draw(Frame, "DOWN/S +5", signX, signY, Gold);
+          PixelFont.Draw(Frame, _touchControls ? "DOWN +5" : "DOWN/S +5", signX, signY, Gold);
         }
 
         if (name is not null)
@@ -825,7 +830,7 @@ internal sealed class PixelRenderer
     if (game.IsDying)
     {
       DrawDeathMessage(game.DeathQuote);
-      string Prompt = game.Lives == 0 ? "PRESS ENTER TO START OVER" : "PRESS ANY KEY TO CONTINUE";
+      string Prompt = game.Lives == 0 ? (_touchControls ? "TAP OK TO START OVER" : "PRESS ENTER TO START OVER") : (_touchControls ? "TAP OK TO CONTINUE" : "PRESS ANY KEY TO CONTINUE");
       int promptScale = game.AwaitingRestart ? 2 : 1;
       int promptY = game.AwaitingRestart ? 112 : Height - 9;
       if (!game.AwaitingRestart)
@@ -855,7 +860,7 @@ internal sealed class PixelRenderer
     DrawTitleText("PAUSED", 89, Gold, 2);
     DrawMenuChoice("RESUME GAME", 116, selection == 0);
     DrawMenuChoice("SETTINGS", 135, selection == 1);
-    DrawTitleText("UP/DOWN SELECT  ENTER CONFIRM", 161, White, 1);
+    DrawTitleText(_touchControls ? "UP/DOWN SELECT  OK CONFIRM" : "UP/DOWN SELECT  ENTER CONFIRM", 161, White, 1);
   }
 
   private void DrawWeaponQuote(string quote, string title)
@@ -1155,13 +1160,15 @@ internal sealed class PixelRenderer
 
   private void DrawHud(Game game)
   {
+    string message = _touchControls ? game.Message.Replace("X or CTRL", "ATTACK", StringComparison.OrdinalIgnoreCase)
+      .Replace("Down or S", "DOWN", StringComparison.OrdinalIgnoreCase) : game.Message;
     Frame.Fill(0, 0, Width, HeaderHeight, Ink);
     Frame.Fill(0, HeaderHeight - 2, Width, 2, 0xFF355575);
     if (game.Level.IsSpeedRun)
     {
       PixelFont.Draw(Frame, $"SCORE {game.Score:000000}", 8, 8, White);
       PixelFont.Draw(Frame, "SPEED RUNS", 80, 8, Gold);
-      PixelFont.Draw(Frame, game.Message[..Math.Min(38, game.Message.Length)], 8, 19, 0xFFA7CBDC);
+      PixelFont.Draw(Frame, message[..Math.Min(38, message.Length)], 8, 19, 0xFFA7CBDC);
       PixelFont.Draw(Frame, $"{game.LevelLabel}  LIVES {game.Lives}", 278, 8, White);
       PixelFont.Draw(Frame, $"COINS {game.Coins:00}", 278, 19, White);
       string countdown = game.LevelSecondsRemaining.ToString("00");
@@ -1178,10 +1185,10 @@ internal sealed class PixelRenderer
       uint timeColor = game.LevelSecondsRemaining <= 10 ? 0xFFFF6B6B : Gold;
       PixelFont.Draw(Frame, "TIME", timeX - 23, 8, timeColor);
       PixelFont.Draw(Frame, seconds, timeX, 5, timeColor, 2);
-      PixelFont.Draw(Frame, game.Message, 8, 19, 0xFFA7CBDC);
+      PixelFont.Draw(Frame, message, 8, 19, 0xFFA7CBDC);
     }
 
     Frame.Fill(0, Height - FooterHeight, Width, FooterHeight, Ink);
-    PixelFont.Draw(Frame, "A/D MOVE  SPACE JUMP  DOWN/S PIPE  X FIRE  ENTER PAUSE  R RETRY", 8, Height - 9, White);
+    PixelFont.Draw(Frame, _touchControls ? "LEFT/RIGHT MOVE  DOWN PIPE  JUMP  ATTACK  PAUSE" : "A/D MOVE  SPACE JUMP  DOWN/S PIPE  X FIRE  ENTER PAUSE  R RETRY", 8, Height - 9, White);
   }
 }

@@ -6,7 +6,8 @@
 * Player
   * Different strengths (multiple jumps/hits)
   * ~~Flamethrower~~
-  * Boom-Stick; blasts through walls
+    * Uses arching flames; change current ani to raygun
+  * ~~Boom-Stick; blasts through walls~~
   * Throw flaming poop bag (or rocks) and it arcs downward after so far
   * ~~Some enemies are stronger than others~~
   * Duck down
