@@ -32,6 +32,27 @@ public sealed class ChainWhipTests : GameTestBase
   }
 
   [TestMethod]
+  [DataRow(PlayerCharacter.Sam)]
+  [DataRow(PlayerCharacter.Ella)]
+  public void EmoBossLevelOffersWhipAfterCollectingGrowth(PlayerCharacter character)
+  {
+    var game = new Game([Path.Combine(AppContext.BaseDirectory, "Levels", "03-06-emo-kid-boss.txt")]) { Character = character };
+    game.Enemies.Clear();
+    MoveTo(game, 18);
+    Bump(game);
+    TouchHeart(game);
+    Tick(game, 60);
+    Assert.IsTrue(game.IsLarge);
+    Assert.IsFalse(game.HasChainWhip);
+    MoveTo(game, 24);
+    Bump(game);
+    TouchHeart(game);
+    Assert.IsTrue(game.HasChainWhip);
+    Assert.AreEqual('X', game.Level.Tile(18, 16));
+    Assert.AreEqual('X', game.Level.Tile(24, 16));
+  }
+
+  [TestMethod]
   public void SmallPlayerCannotCollectWhipUntilGrown()
   {
     var game = CreateGame();

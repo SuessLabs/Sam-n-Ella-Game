@@ -461,8 +461,9 @@ and `StartingPower=ToiletPaper` or `StartingPower=ChainWhip` for starting gear.
 ### Boss evasions and the expanded Emo Kid gauntlet
 
 03-06 is now 256 blocks long. Its middle section adds flies, worms, and both
-punk variants before the boss arena. The level offers a growth heart but no
-flamethrower, shotgun, or chain-whip pickups; carried weapons remain available.
+punk variants before the boss arena. Near the start, collect the growth heart
+from the first `M` block, then the chain whip from the following `W` block.
+The level has no flamethrower or shotgun pickups; carried weapons remain available.
 The exit pipe still returns the player to daylight after the boss is defeated.
 
 All bosses (Dung-Bag, Old Man, and Emo Kid) quickly dash away after every second
