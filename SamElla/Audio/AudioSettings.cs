@@ -4,8 +4,11 @@ namespace SamElla.Audio;
 
 internal sealed class AudioSettings
 {
-  private int _musicVolume = 100;
-  private int _soundEffectsVolume = 100;
+  public const int DefaultMusicVolume = 30;
+  public const int DefaultSoundEffectsVolume = 50;
+
+  private int _musicVolume = DefaultMusicVolume;
+  private int _soundEffectsVolume = DefaultSoundEffectsVolume;
 
   public int MusicVolume
   {
@@ -54,6 +57,7 @@ internal sealed class AudioSettings
         }
       }
     }
+
     catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
     {
       // Missing or unavailable preferences fall back to audible defaults.
@@ -69,6 +73,7 @@ internal sealed class AudioSettings
       Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
       File.WriteAllLines(path, ToLines());
     }
+
     catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
     {
       // Preferences still apply to this session if the file cannot be written.

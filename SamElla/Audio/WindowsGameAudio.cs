@@ -73,10 +73,10 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
   private bool _queuedMusicEnabled = true;
   private bool _queuedEffectsEnabled = true;
   private bool _effectsEnabled = true;
-  private int _queuedMusicVolume = 100;
-  private int _queuedEffectsVolume = 100;
-  private int _musicVolume = 100;
-  private int _effectsVolume = 100;
+  private int _queuedMusicVolume = AudioSettings.DefaultMusicVolume;
+  private int _queuedEffectsVolume = AudioSettings.DefaultSoundEffectsVolume;
+  private int _musicVolume = AudioSettings.DefaultMusicVolume;
+  private int _effectsVolume = AudioSettings.DefaultSoundEffectsVolume;
 
   public WindowsGameAudio()
   {
@@ -228,7 +228,6 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
       _flamethrower?.Dispose();
       _flamethrower = null;
     }
-
   }
 
   private void SetMusicCore(GameMusic music)
@@ -244,7 +243,6 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
       _music = CreateVoice(_musicSamples[music], GameMusicTracks.Loops(music),
         paused: _musicPause.ShouldPause, volume: _musicVolume);
     }
-
   }
 
   private void SetMusicPausedCore(bool paused)
@@ -326,7 +324,6 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
       if (notificationFinished)
         ApplyMusicPause();
     }
-
   }
 
   private sealed class Voice : IDisposable
