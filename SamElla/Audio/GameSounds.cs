@@ -8,6 +8,9 @@ internal static class GameSounds
 
   public static short[] Create(GameSound sound)
   {
+    if (sound is GameSound.FartShort or GameSound.FartLong)
+      return CreateFart(sound == GameSound.FartLong);
+
     if (sound == GameSound.ChainWhip)
       return CreateWhipCrack();
 
@@ -91,6 +94,29 @@ internal static class GameSounds
       }
 
       samples[i] = (short)(value * short.MaxValue * 0.45);
+    }
+
+    return samples;
+  }
+
+  private static short[] CreateFart(bool longFart)
+  {
+    double duration = longFart ? 0.55 : 0.35;
+    var samples = new short[(int)(SampleRate * duration)];
+    uint noise = longFart ? 0xFA472u : 0xFA471u;
+    double phase = 0, rumble = 0;
+    for (int i = 0; i < samples.Length; i++)
+    {
+      double time = (double)i / SampleRate;
+      noise ^= noise << 13;
+      noise ^= noise >> 17;
+      noise ^= noise << 5;
+      rumble += ((noise & 0xFFFF) / 32767.5 - 1 - rumble) * 0.07;
+      phase += (longFart ? 65 : 95) * (1 - 0.45 * time / duration) / SampleRate;
+      double buzz = Math.Sin(2 * Math.PI * phase + 2.4 * Math.Sin(4 * Math.PI * phase));
+      double flutter = 0.6 + 0.4 * Math.Sin(2 * Math.PI * (longFart ? 14 : 23) * time);
+      double envelope = Math.Min(1, time / 0.008) * Math.Min(1, (duration - time) / 0.06);
+      samples[i] = (short)((buzz * 0.5 + rumble * 0.5) * flutter * envelope * short.MaxValue * 0.7);
     }
 
     return samples;

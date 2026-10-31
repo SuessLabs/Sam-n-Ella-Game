@@ -28,6 +28,10 @@ public sealed class Game
   public const double LargeBodyHeight = 1.8;
   public const double OverloadedBodyHeight = 2.7;
   public const int PipeTravelDurationTicks = 48;
+  public const int PeptoResetTicks = Level.SpeedRunTimeLimitSeconds * 60;
+  public const int PipeReliefBonusTicks = 5 * 60;
+  public const int PipeReliefDurationTicks = 36;
+  public const int ToiletFinishDurationTicks = 210;
   public const int PoopSlowDurationTicks = 300;
   public const double PoopSpeedMultiplier = 0.5;
   public const int PoopSplatterDurationTicks = 120;
@@ -43,7 +47,7 @@ public sealed class Game
   private readonly HashSet<(int Level, int X, int Y)> _collectedItems = [];
   private readonly string _creditsAssetsPath;
   private readonly string[] _deathQuotes;
-  private readonly string[] _emoQuotes;
+  private readonly string[] _enemyQuotes;
   private readonly EnemyConfiguration _enemyConfiguration;
   private readonly List<EnemyProjectile> _enemyProjectiles = [];
   private readonly string[] _files;
@@ -55,6 +59,8 @@ public sealed class Game
   private readonly List<CoinRewardPopup> _rewardPopups = [];
   private readonly List<ThrownPoop> _thrownPoop = [];
   private readonly HashSet<Enemy> _whipHits = [];
+  private readonly HashSet<(int X, int Y)> _usedReliefPipes = [];
+  private double _toiletStartX, _toiletStartY;
 
   private int _facingDirection = 1;
   private bool _fireWasHeld;
@@ -111,12 +117,12 @@ public sealed class Game
     if (_gameOverQuotes.Length == 0)
       _gameOverQuotes = ["Bet you wish you could rewind? Nope."];
 
-    string quotesPath = Path.Combine(_creditsAssetsPath, "emo-quotes.txt");
-    _emoQuotes = File.Exists(quotesPath)
+    string quotesPath = Path.Combine(_creditsAssetsPath, "enemy-quotes.txt");
+    _enemyQuotes = File.Exists(quotesPath)
       ? File.ReadAllLines(quotesPath).Where(line => !string.IsNullOrWhiteSpace(line) && !line.StartsWith(';')).ToArray()
       : [];
-    if (_emoQuotes.Length == 0)
-      _emoQuotes = ["use toxic straws", "i'm confused", "i want free stuff", "i hate working", "responsibility is dumb", "Ok boomer"];
+    if (_enemyQuotes.Length == 0)
+      _enemyQuotes = ["use toxic straws", "i'm confused", "i want free stuff", "i hate working", "responsibility is dumb", "Ok boomer"];
 
     LoadLevel();
     ApplyCheatStart();
@@ -199,6 +205,13 @@ public sealed class Game
   public int ShotgunDamage => FlameDamage + 1;
   public int SlowTicksRemaining { get; private set; }
   public IReadOnlyList<ThrownPoop> ThrownPoop => _thrownPoop;
+  public int PipeReliefTicksRemaining { get; private set; }
+  public int ToiletFinishTicksRemaining { get; private set; }
+  public int ToiletFinishAgeTicks => ToiletFinishDurationTicks - ToiletFinishTicksRemaining;
+  public bool IsFinishingToilet => ToiletFinishTicksRemaining > 0;
+  public bool IsSeatedOnToilet => IsFinishingToilet && ToiletFinishAgeTicks >= 30;
+  public int ToiletX { get; private set; }
+  public int ToiletY { get; private set; }
   public int TotalDeaths { get; private set; }
   public double VelocityY { get; private set; }
   public ChainWhipSwing? WhipSwing { get; private set; }
@@ -227,7 +240,7 @@ public sealed class Game
 
   public void QueueJump()
   {
-    if (!Paused && !Won && !IsDying && Lives > 0)
+    if (!Paused && !Won && !IsDying && !IsFinishingToilet && PipeReliefTicksRemaining == 0 && Lives > 0)
       _jumpBuffer = 0.12;
   }
 
@@ -311,6 +324,19 @@ public sealed class Game
       return;
     }
 
+    if (IsFinishingToilet)
+    {
+      AdvanceToiletFinish();
+      return;
+    }
+
+    if (PipeReliefTicksRemaining > 0)
+    {
+      PipeReliefTicksRemaining--;
+      AdvanceLevelClock();
+      return;
+    }
+
     if (PipeTravelTicksRemaining > 0)
     {
       AdvancePipeTravel();
@@ -320,17 +346,11 @@ public sealed class Game
     if (EnemyQuoteTicksRemaining > 0 && --EnemyQuoteTicksRemaining == 0)
       EnemyQuote = string.Empty;
 
-    if (downHeld && TryEnterPipe())
+    if (downHeld && (TryEnterPipe() || TryRelieveInPipe()))
       return;
 
-    if (--LevelTicksRemaining <= 0)
-    {
-      LevelTicksRemaining = 0;
-      Die();
-      Message = "TIME'S UP!";
-      DeathQuote = "Time's up!";
+    if (!AdvanceLevelClock())
       return;
-    }
 
     if (ShotgunBlast is { } blast)
       ShotgunBlast = blast.AgeTicks + 1 >= ShotgunBlast.DurationTicks ? null : blast with { AgeTicks = blast.AgeTicks + 1 };
@@ -427,6 +447,20 @@ public sealed class Game
           SoundRequested?.Invoke(GameSound.Coin);
           break;
 
+        case 'k':
+          Level.Clear(tx, ty);
+          _collectedItems.Add((_levelIndex, tx, ty));
+          Score += 100;
+          if (Level.IsSpeedRun)
+          {
+            LevelTicksRemaining = PeptoResetTicks;
+            Message = "Pepto! Back to 10 seconds!";
+          }
+
+          SoundRequested?.Invoke(GameSound.PowerUp);
+          break;
+
+        case 'T':
         case 'G':
           if (!HasEnteredUnderworld || (Level.ExitPipe is not null && !ReturnedToDaylight))
           {
@@ -440,23 +474,10 @@ public sealed class Game
             break;
           }
 
-          Score += 1000;
-          ItemsMissed += _levelItems.Count(item => !_collectedItems.Contains((_levelIndex, item.X, item.Y)));
-          if (_levelIndex + 1 == _files.Length)
-          {
-            Won = true;
-            CreditsTicks = 0;
-            Credits = new EndCreditsScreen(_creditsAssetsPath, CompletionTime, TotalDeaths, Score, ItemsMissed);
-            Message = "YOU WIN! R to play again";
-          }
+          if (Level.Tile(tx, ty) == 'T')
+            BeginToiletFinish(tx, ty);
           else
-          {
-            _levelIndex++;
-            LoadLevel(preserveGrowth: true);
-            _transition = 0.6;
-            Message = "Next level!";
-          }
-
+            CompleteLevel();
           return;
       }
     }
@@ -479,8 +500,9 @@ public sealed class Game
         continue;
 
       double ex = enemy.X, ey = enemy.Y;
-      bool stunned = enemy.StunTicksRemaining > 0;
-      if (stunned)
+      bool dodging = enemy.IsBoss && enemy.BossDodgeTicksRemaining > 0;
+      bool stunned = enemy.StunTicksRemaining > 0 && !dodging;
+      if (enemy.StunTicksRemaining > 0)
         enemy.StunTicksRemaining--;
       if (enemy.ThrowPoseTicksRemaining > 0)
         enemy.ThrowPoseTicksRemaining--;
@@ -502,19 +524,20 @@ public sealed class Game
       }
       else
       {
-        double patrolDistance = stunned || enemy.CaneSwingTicksRemaining > 0 ? 0 : enemy.Direction * enemy.Settings.Speed * Step;
+        double patrolSpeed = dodging ? Enemy.BossDodgeSpeed : enemy.Settings.Speed;
+        double patrolDistance = stunned || enemy.CaneSwingTicksRemaining > 0 ? 0 : enemy.Direction * patrolSpeed * Step;
         if (enemy.IsBoss && patrolDistance != 0
           && (ex + patrolDistance < enemy.PatrolOriginX - 5 || ex + patrolDistance > enemy.PatrolOriginX + 4))
         {
           enemy.Direction *= -1;
-          patrolDistance = enemy.Direction * enemy.Settings.Speed * Step;
+          patrolDistance = enemy.Direction * patrolSpeed * Step;
         }
 
         if ((Level.EnemiesAvoidLedges || enemy.IsBoss) && patrolDistance != 0 && HasPatrolSupport(ex, enemy.PatrolFloorRow)
           && !HasPatrolSupport(ex + patrolDistance, enemy.PatrolFloorRow))
         {
           enemy.Direction *= -1;
-          patrolDistance = enemy.Direction * enemy.Settings.Speed * Step;
+          patrolDistance = enemy.Direction * patrolSpeed * Step;
           if (!HasPatrolSupport(ex + patrolDistance, enemy.PatrolFloorRow))
             patrolDistance = 0;
         }
@@ -546,22 +569,24 @@ public sealed class Game
       }
 
       enemy.X = ex; enemy.Y = ey;
+      if (dodging)
+        enemy.BossDodgeTicksRemaining--;
       if (enemy.Kind == EnemyKind.Dog && floor && enemyVertical > 0 && !stunned)
         LeavePoop(enemy);
 
-      if (enemy.Kind == EnemyKind.DungBag && !stunned && --enemy.ThrowTicksRemaining <= 0)
+      if (enemy.Kind == EnemyKind.DungBag && !stunned && !dodging && --enemy.ThrowTicksRemaining <= 0)
       {
         enemy.ThrowTicksRemaining = Enemy.BossThrowIntervalTicks;
         int aim = X < enemy.X ? -1 : 1;
         _thrownPoop.Add(new ThrownPoop(enemy.X + aim * 0.85, enemy.Y + 0.2, aim * 6));
       }
 
-      if (enemy.IsTeen && !stunned)
+      if (enemy.IsTeen && !stunned && !dodging)
         AdvanceTeenAttack(enemy);
 
       if (enemy.Kind == EnemyKind.OldMan)
       {
-        AdvanceCaneAttack(enemy, stunned);
+        AdvanceCaneAttack(enemy, stunned || dodging);
         if (IsDying)
           return;
       }
@@ -580,6 +605,8 @@ public sealed class Game
         bool defeated = enemy.Stomp(enemy.IsBoss && !IsLarge ? 1 : PlayerPowerLevel);
         Y = ey - PlayerHeight;
         VelocityY = -10;
+        if (!defeated && enemy.IsBoss && enemy.BossHeadStomps % 2 == 0)
+          BeginBossDodge(enemy);
 
         if (defeated)
           EnemyDefeated(enemy);
@@ -620,6 +647,19 @@ public sealed class Game
 
   private static bool Overlaps(double ax, double ay, double height, double bx, double by, double otherHeight = BodyHeight) =>
     ax < bx + BodyWidth && ax + BodyWidth > bx && ay < by + otherHeight && ay + height > by;
+
+  private void BeginBossDodge(Enemy enemy)
+  {
+    int direction = X + BodyWidth / 2 <= enemy.X + BodyWidth / 2 ? 1 : -1;
+    double leftSpace = enemy.X - (enemy.PatrolOriginX - 5);
+    double rightSpace = enemy.PatrolOriginX + 4 - enemy.X;
+    if (direction > 0 && rightSpace < 2 && leftSpace > rightSpace)
+      direction = -1;
+    else if (direction < 0 && leftSpace < 2 && rightSpace > leftSpace)
+      direction = 1;
+
+    enemy.Direction = direction;
+  }
 
   private void AdvanceCaneAttack(Enemy enemy, bool stunned)
   {
@@ -762,12 +802,12 @@ public sealed class Game
     if (Math.Abs(enemy.X - X) > 12)
       return;
 
-    if (enemy.Kind == EnemyKind.EmoBoss && --enemy.SpeechTicks <= 0)
+    if (--enemy.SpeechTicks <= 0)
     {
       enemy.SpeechTicks = 210;
       if (EnemyQuoteTicksRemaining == 0)
       {
-        EnemyQuote = _emoQuotes[enemy.SpeechIndex++ % _emoQuotes.Length];
+        EnemyQuote = _enemyQuotes[enemy.SpeechIndex++ % _enemyQuotes.Length];
         EnemyQuoteTicksRemaining = 150;
       }
     }
@@ -1086,6 +1126,9 @@ public sealed class Game
     _poopPiles.Clear();
     _thrownPoop.Clear();
     _enemyProjectiles.Clear();
+    _usedReliefPipes.Clear();
+    PipeReliefTicksRemaining = ToiletFinishTicksRemaining = 0;
+    ToiletX = ToiletY = 0;
     _travelPipe = null;
     PipeTravelTicksRemaining = 0;
     EnemyQuote = string.Empty;
@@ -1118,7 +1161,7 @@ public sealed class Game
     {
       for (int x = 0; x < Level.Width; x++)
       {
-        if (Level.Tile(x, y) is 'o' or '?' or 'M' or 'F' or 'Q' or 'W')
+        if (Level.Tile(x, y) is 'o' or '?' or 'M' or 'F' or 'Q' or 'W' or 'k')
           _levelItems.Add((x, y));
       }
     }
@@ -1151,6 +1194,12 @@ public sealed class Game
       .Concat(Level.OldManSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.OldMan)))
       .Concat(Level.BossSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.DungBag)))
       .ToList();
+    foreach (var enemy in Enemies.Where(enemy => enemy.Kind is EnemyKind.PunkBlue or EnemyKind.PunkPurple))
+    {
+      enemy.SpeechIndex = (int)enemy.PatrolOriginX;
+      enemy.SpeechTicks = 1;
+    }
+
     TryGrow();
     if (Level.StartsWithShotgun)
       Message = "Shotgun ready! Blast the exit wall.";
@@ -1310,6 +1359,113 @@ public sealed class Game
     DamageTicksRemaining = DamageProtectionTicks;
     Message = "Shrunk! Keep moving!";
     SoundRequested?.Invoke(GameSound.PowerDown);
+  }
+
+  private void CompleteLevel()
+  {
+    Score += 1000;
+    ItemsMissed += _levelItems.Count(item => !_collectedItems.Contains((_levelIndex, item.X, item.Y)));
+    if (_levelIndex + 1 == _files.Length)
+    {
+      Won = true;
+      CreditsTicks = 0;
+      Credits = new EndCreditsScreen(_creditsAssetsPath, CompletionTime, TotalDeaths, Score, ItemsMissed);
+      Message = "YOU WIN! R to play again";
+    }
+    else
+    {
+      _levelIndex++;
+      LoadLevel(preserveGrowth: true);
+      _transition = 0.6;
+      Message = "Next level!";
+    }
+  }
+
+  private bool AdvanceLevelClock()
+  {
+    if (--LevelTicksRemaining > 0)
+      return true;
+
+    LevelTicksRemaining = 0;
+    Die();
+    Message = Level.IsSpeedRun ? "You shit your pants!" : "TIME'S UP!";
+    DeathQuote = Level.IsSpeedRun ? "You shit your pants!" : "Time's up!";
+    return false;
+  }
+
+  public bool CanUseReliefPipe(int x, int y)
+  {
+    char tile = Level.Tile(x, y);
+    if (!Level.IsSpeedRun || tile is not ('P' or 'p') || Level.Tile(x, y - 1) == tile)
+      return false;
+
+    if (tile == 'P')
+    {
+      while (Level.Tile(x - 1, y) == 'P')
+        x--;
+    }
+
+    return !_usedReliefPipes.Contains((x, y));
+  }
+
+  private bool TryRelieveInPipe()
+  {
+    int x = (int)Math.Floor(X + BodyWidth / 2);
+    int y = (int)Math.Round(Y + PlayerHeight);
+    if (!Grounded || Math.Abs(Y + PlayerHeight - y) > 0.05 || !CanUseReliefPipe(x, y))
+      return false;
+
+    if (Level.Tile(x, y) == 'P')
+    {
+      while (Level.Tile(x - 1, y) == 'P')
+        x--;
+    }
+
+    _usedReliefPipes.Add((x, y));
+    LevelTicksRemaining += PipeReliefBonusTicks;
+    PipeReliefTicksRemaining = PipeReliefDurationTicks;
+    VelocityY = 0;
+    _jumpBuffer = _coyoteTime = 0;
+    ClearWhipSwing();
+    Flame = null;
+    ShotgunBlast = null;
+    Message = "Pipe relief! +5 seconds!";
+    SoundRequested?.Invoke(GameSound.FartShort);
+    return true;
+  }
+
+  private void BeginToiletFinish(int x, int y)
+  {
+    ToiletX = x;
+    ToiletY = y;
+    ToiletFinishTicksRemaining = ToiletFinishDurationTicks;
+    _toiletStartX = X;
+    _toiletStartY = Y;
+    VelocityY = 0;
+    _jumpBuffer = _coyoteTime = 0;
+    Flame = null;
+    ShotgunBlast = null;
+
+    ClearWhipSwing();
+    Message = "Made it! Privacy, please...";
+  }
+
+  private void AdvanceToiletFinish()
+  {
+    ToiletFinishTicksRemaining--;
+    int age = ToiletFinishAgeTicks;
+    double approach = Math.Min(1, age / 30.0);
+    X = _toiletStartX + (ToiletX + 0.5 - _toiletStartX) * approach;
+    Y = _toiletStartY + (ToiletY + 1 - PlayerHeight - _toiletStartY) * approach;
+
+    if (age == 105)
+      SoundRequested?.Invoke(GameSound.FartShort);
+
+    if (age == 150)
+      SoundRequested?.Invoke(GameSound.FartLong);
+
+    if (ToiletFinishTicksRemaining == 0)
+      CompleteLevel();
   }
 
   private bool TryEnterPipe()

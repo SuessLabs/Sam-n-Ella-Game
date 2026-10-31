@@ -14,7 +14,7 @@ public sealed class ToasterCatTests : GameTestBase
   {
     string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
     Assert.IsEmpty(Level.Load(paths[0]).ToasterCatSpawns);
-    foreach (string path in paths.Skip(1).Where(path => Level.Load(path).Background != BackgroundTheme.Underworld && Level.Load(path).BossSpawns.Count == 0 && Level.Load(path).OldManSpawns.Count == 0))
+    foreach (string path in paths.Skip(1).Where(path => Level.Load(path).Section is 1 or 2 && Level.Load(path).BossSpawns.Count == 0 && Level.Load(path).OldManSpawns.Count == 0))
     {
       var level = Level.Load(path);
       Assert.IsNotEmpty(level.ToasterCatSpawns, Path.GetFileName(path));

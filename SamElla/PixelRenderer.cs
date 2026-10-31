@@ -59,6 +59,9 @@ internal sealed class PixelRenderer
       "dog-walk-1",
       "dog-walk-2",
       "dog-squashed",
+      "pepto-bottle",
+      "toilet",
+      "player-toilet-sit",
       "poop",
       "sewer-brick",
       "sludge",
@@ -477,8 +480,29 @@ internal sealed class PixelRenderer
           'o' => "coin",
           '^' => "spike",
           'G' => "goal",
+          'k' => "pepto-bottle",
           _ => null,
         };
+
+        if (game.Level.Tile(x, y) == 'T')
+        {
+          int left = x * TileSize - cameraX;
+          int top = HeaderHeight + (y - 3) * TileSize - cameraY;
+          Frame.Fill(left - 9, top, 50, 2, Ink);
+          Frame.Fill(left - 8, top + 2, 2, 63, 0xFFB85A47);
+          Frame.Fill(left + 39, top + 2, 2, 63, 0xFFB85A47);
+          Frame.Fill(left + 2, top - 12, 28, 9, Ink);
+          PixelFont.Draw(Frame, "TOILET", left + 4, top - 10, Gold);
+          Frame.Draw(_sprites["toilet"], left, HeaderHeight + (y - 1) * TileSize - cameraY);
+        }
+
+        if (game.CanUseReliefPipe(x, y) && game.Level.Tile(x - 1, y) != game.Level.Tile(x, y))
+        {
+          int signX = x * TileSize - cameraX - 8;
+          int signY = HeaderHeight + y * TileSize - cameraY - 20;
+          Frame.Fill(signX - 2, signY - 2, 51, 11, Ink);
+          PixelFont.Draw(Frame, "DOWN/S +5", signX, signY, Gold);
+        }
 
         if (name is not null)
           Frame.Draw(_sprites[name], (x * TileSize) - cameraX, HeaderHeight + (y * TileSize) - cameraY);
@@ -627,7 +651,12 @@ internal sealed class PixelRenderer
     if (game.IsLarge)
       playerFrame = playerFrame.Replace("player-", "player-large-", StringComparison.Ordinal);
 
-    if (game.IsExploding)
+    if (game.IsSeatedOnToilet)
+    {
+      Frame.Draw(_sprites[game.Character == Actors.PlayerCharacter.Ella ? "ella-toilet-sit" : "player-toilet-sit"],
+        game.ToiletX * TileSize - cameraX, HeaderHeight + (game.ToiletY - 1) * TileSize - cameraY);
+    }
+    else if (game.IsExploding)
     {
       if (game.IsExplosionVisible)
         DrawActor(_sprites[PlayerSprite(game.Character, $"player-explosion-{game.ExplosionFrameIndex + 1}")], game.X, game.Y,
@@ -635,10 +664,19 @@ internal sealed class PixelRenderer
     }
     else if (game.IsDying)
       DrawActor(_sprites[PlayerSprite(game.Character, "player-splatter")], game.X, game.Y, cameraX, cameraY, _facingLeft, true);
+    else if (game.PipeReliefTicksRemaining > 0)
+    {
+      DrawActor(_sprites[PlayerSprite(game.Character, "player-idle")], game.X, game.Y,
+        cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);
+      int puffX = (int)Math.Round((game.X + Game.BodyWidth) * TileSize) - cameraX;
+      int puffY = HeaderHeight + (int)Math.Round((game.Y + game.PlayerHeight - 0.25) * TileSize) - cameraY;
+      Frame.Fill(puffX + game.PipeReliefTicksRemaining % 5, puffY - 3, 5, 3, 0xFF754A44);
+      Frame.Fill(puffX + 4, puffY - 6, 3, 3, 0xFF82BD58);
+    }
     else if ((game.DamageTicksRemaining / 5) % 2 == 0)
       DrawActor(_sprites[PlayerSprite(game.Character, playerFrame)], game.X, game.Y, cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);
 
-    if ((game.HasFlamethrower || game.HasBoomStick || game.HasChainWhip) && !game.IsDying && (game.DamageTicksRemaining / 5) % 2 == 0)
+    if ((game.HasFlamethrower || game.HasBoomStick || game.HasChainWhip) && !game.IsDying && !game.IsFinishingToilet && game.PipeReliefTicksRemaining == 0 && (game.DamageTicksRemaining / 5) % 2 == 0)
     {
       int weaponX = (int)Math.Round((game.X + (Game.BodyWidth / 2)) * TileSize) - 8 - cameraX;
       int weaponY = HeaderHeight + (int)Math.Round((game.Y + game.PlayerHeight - 0.65) * TileSize) - 8 - cameraY;
@@ -703,6 +741,26 @@ internal sealed class PixelRenderer
           if (color != 0)
             Frame.Fill(originX + (blast.Direction > 0 ? distance : -distance - 1), originY + y, 1, 1, color);
         }
+      }
+    }
+
+    if (game.IsFinishingToilet)
+    {
+      int left = game.ToiletX * TileSize - cameraX - 8;
+      int top = HeaderHeight + (game.ToiletY - 3) * TileSize - cameraY + 3;
+      int width = 48 * Math.Clamp(game.ToiletFinishAgeTicks - 30, 0, 60) / 60;
+      int curtainLeft = left + 48 - width;
+      Frame.Fill(curtainLeft, top, width, 59, 0xFF8745B5);
+      for (int fold = 0; fold < width; fold += 6)
+      {
+        Frame.Fill(curtainLeft + fold, top + 2, 2, 54, 0xFF61338B);
+        Frame.Fill(curtainLeft + fold + 2, top + 2, Math.Clamp(width - fold - 2, 0, 1), 54, 0xFFC58AE8);
+      }
+
+      if (width == 48)
+      {
+        Frame.Fill(left + 4, top + 18, 40, 11, Ink);
+        PixelFont.Draw(Frame, "OCCUPIED", left + 8, top + 21, Gold);
       }
     }
 
@@ -1084,14 +1142,29 @@ internal sealed class PixelRenderer
   {
     Frame.Fill(0, 0, Width, HeaderHeight, Ink);
     Frame.Fill(0, HeaderHeight - 2, Width, 2, 0xFF355575);
-    PixelFont.Draw(Frame, "Sam n' Ella", 8, 8, Gold);
-    PixelFont.Draw(Frame, $"SCORE {game.Score:000000}   COINS {game.Coins:00}   LIVES {game.Lives}   {game.LevelLabel}", 76, 8, White);
-    string seconds = game.LevelSecondsRemaining.ToString("000");
-    int timeX = Width - (((seconds.Length * 4) - 1) * 2) - 8;
-    uint timeColor = game.LevelSecondsRemaining <= 10 ? 0xFFFF6B6B : Gold;
-    PixelFont.Draw(Frame, "TIME", timeX - 23, 8, timeColor);
-    PixelFont.Draw(Frame, seconds, timeX, 5, timeColor, 2);
-    PixelFont.Draw(Frame, game.Message, 8, 19, 0xFFA7CBDC);
+    if (game.Level.IsSpeedRun)
+    {
+      PixelFont.Draw(Frame, $"SCORE {game.Score:000000}", 8, 8, White);
+      PixelFont.Draw(Frame, "SPEED RUNS", 80, 8, Gold);
+      PixelFont.Draw(Frame, game.Message[..Math.Min(38, game.Message.Length)], 8, 19, 0xFFA7CBDC);
+      PixelFont.Draw(Frame, $"{game.LevelLabel}  LIVES {game.Lives}", 278, 8, White);
+      PixelFont.Draw(Frame, $"COINS {game.Coins:00}", 278, 19, White);
+      string countdown = game.LevelSecondsRemaining.ToString("00");
+      int timerX = (Width - ((countdown.Length * 4 - 1) * 2)) / 2;
+      PixelFont.Draw(Frame, "TIME", (Width - 15) / 2, 2, Gold);
+      PixelFont.Draw(Frame, countdown, timerX, 11, game.LevelSecondsRemaining <= 3 ? 0xFFFF6B6B : Gold, 2);
+    }
+    else
+    {
+      PixelFont.Draw(Frame, "Sam n' Ella", 8, 8, Gold);
+      PixelFont.Draw(Frame, $"SCORE {game.Score:000000}   COINS {game.Coins:00}   LIVES {game.Lives}   {game.LevelLabel}", 76, 8, White);
+      string seconds = game.LevelSecondsRemaining.ToString("000");
+      int timeX = Width - (((seconds.Length * 4) - 1) * 2) - 8;
+      uint timeColor = game.LevelSecondsRemaining <= 10 ? 0xFFFF6B6B : Gold;
+      PixelFont.Draw(Frame, "TIME", timeX - 23, 8, timeColor);
+      PixelFont.Draw(Frame, seconds, timeX, 5, timeColor, 2);
+      PixelFont.Draw(Frame, game.Message, 8, 19, 0xFFA7CBDC);
+    }
 
     Frame.Fill(0, Height - FooterHeight, Width, FooterHeight, Ink);
     PixelFont.Draw(Frame, "A/D MOVE  SPACE JUMP  DOWN/S PIPE  X FIRE  ENTER PAUSE  R RETRY", 8, Height - 9, White);

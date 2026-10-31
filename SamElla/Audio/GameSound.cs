@@ -16,6 +16,8 @@ internal enum GameSound
   Flamethrower,
   Shotgun,
   ChainWhip,
+  FartShort,
+  FartLong,
   BlockBreak,
   Coin,
 }

@@ -53,7 +53,7 @@ public sealed class LevelTests
     for (int index = 0; index < paths.Length; index++)
     {
       bool night = index is 3 or 4 or 5 or 8 or 9 or 10 or 11;
-      BackgroundTheme theme = index >= 12 ? BackgroundTheme.Underworld : night ? BackgroundTheme.Night : BackgroundTheme.Day;
+      BackgroundTheme theme = index is >= 12 and <= 17 ? BackgroundTheme.Underworld : night ? BackgroundTheme.Night : BackgroundTheme.Day;
       Assert.AreEqual($"Background={theme}", File.ReadLines(paths[index]).First());
       Assert.AreEqual(theme, Level.Load(paths[index]).Background);
     }

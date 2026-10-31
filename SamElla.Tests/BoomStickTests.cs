@@ -65,7 +65,7 @@ public sealed class BoomStickTests : GameTestBase
   public void BundledBoomSticksStartAtLevelFour()
   {
     string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt")
-      .Where(path => Level.Load(path).Section != 3).Order().ToArray();
+      .Where(path => Level.Load(path).Section is 1 or 2).Order().ToArray();
     for (int index = 0; index < paths.Length; index++)
     {
       Assert.AreEqual(index is 3 or 4 or 6 or 7, File.ReadAllLines(paths[index]).SkipWhile(line => line.Contains('=') || string.IsNullOrWhiteSpace(line)).Any(line => line.Contains('Q')), paths[index]);

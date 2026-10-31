@@ -135,7 +135,7 @@ frames. Each has a matching `-squashed.sprite`. The `punk-blue-*` and
 `punk-purple-*` sets are 24 x 32 walking, throwing, and flattened frames with
 colored mohawks; `emo-boss-*` is a larger 32 x 48 set with a long purple fringe.
 `beer-bottle.sprite` and `needle.sprite` are 16 x 16 projectiles. Actors face left
-and flip right. Boss taunts come from `emo-quotes.txt`; the death groan is
+and flip right. Punk and boss taunts come from `enemy-quotes.txt`; the death groan is
 synthesized in `GameSounds` and requires no downloaded sound file.
 
 Chain whip assets: `chain-whip.sprite` is the 16 x 16 handheld coiled weapon;
@@ -143,3 +143,9 @@ Chain whip assets: `chain-whip.sprite` is the 16 x 16 handheld coiled weapon;
 `chain-link-1.sprite` and `chain-link-2.sprite` are 16 x 16 metal link textures
 used along the extending/retracting chain. All use the existing shared palette.
 The crack sound is synthesized by `GameSounds`.
+
+Speed Runs assets: `pepto-bottle.sprite` is a 16 x 16 pink medicine bottle using
+the new `I` palette color. `toilet.sprite`, `player-toilet-sit.sprite`, and
+`ella-toilet-sit.sprite` are editable 32 x 32 bathroom frames. The stall rail,
+closing purple curtain, occupied sign, and pipe relief puffs are drawn by the
+renderer. Two distinct short/long fart sounds are synthesized in `GameSounds`.
