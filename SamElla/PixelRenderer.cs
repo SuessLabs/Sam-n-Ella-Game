@@ -104,6 +104,10 @@ internal sealed class PixelRenderer
       "heart-2",
       "flamethrower",
       "flamethrower-pickup",
+      "toilet-paper",
+      "toilet-paper-pickup",
+      "toilet-paper-roll-1",
+      "toilet-paper-roll-2",
       "chain-whip",
       "chain-whip-pickup",
       "chain-link-1",
@@ -473,7 +477,7 @@ internal sealed class PixelRenderer
           '#' => underworld ? "sewer-brick" : game.Level.Tile(x, y - 1) == '#' ? "dirt" : "grass",
           '~' => "sludge",
           'B' => underworld ? "sewer-brick" : "brick",
-          '?' or 'M' or 'F' or 'Q' or 'W' => "bonus",
+          '?' or 'M' or 'F' or 'Q' or 'W' or 'L' => "bonus",
           'X' => "used",
           'P' => PipeSprite(game.Level, x, y),
           'p' => SkinnyPipeSprite(game.Level, x, y),
@@ -539,6 +543,13 @@ internal sealed class PixelRenderer
       PixelFont.Draw(Frame, "DOWN / S", signX + 6, signY + 10, White);
     }
 
+    foreach (var roll in game.ToiletPaperRolls)
+    {
+      int x = (int)Math.Round(roll.X * TileSize) - cameraX - 3;
+      int y = HeaderHeight + (int)Math.Round(roll.Y * TileSize) - cameraY - 3;
+      Frame.Draw(_sprites[$"toilet-paper-roll-{roll.FrameIndex + 1}"], x, y, roll.Direction < 0);
+    }
+
     foreach (var projectile in game.EnemyProjectiles)
     {
       string name = projectile.Kind == Effects.EnemyProjectileKind.BeerBottle ? "beer-bottle" : "needle";
@@ -561,7 +572,7 @@ internal sealed class PixelRenderer
     }
 
     foreach (var heart in game.GrowthHearts)
-      DrawActor(_sprites[heart.IsChainWhip ? "chain-whip-pickup" : heart.IsBoomStick ? "boom-stick-pickup" : heart.IsFlamethrower ? "flamethrower-pickup" : $"heart-{heart.FrameIndex + 1}"], heart.X, heart.Y, cameraX, cameraY, heart.Direction < 0);
+      DrawActor(_sprites[heart.IsToiletPaper ? "toilet-paper-pickup" : heart.IsChainWhip ? "chain-whip-pickup" : heart.IsBoomStick ? "boom-stick-pickup" : heart.IsFlamethrower ? "flamethrower-pickup" : $"heart-{heart.FrameIndex + 1}"], heart.X, heart.Y, cameraX, cameraY, heart.Direction < 0);
 
     if (game.Boss is { } boss && game.X >= boss.PatrolOriginX - 14)
     {
@@ -596,7 +607,7 @@ internal sealed class PixelRenderer
         EnemyKind.PunkBlue => enemy.ThrowPoseTicksRemaining > 0 ? "punk-blue-throw" : $"punk-blue-{animationFrame + 1}",
         EnemyKind.PunkPurple => enemy.ThrowPoseTicksRemaining > 0 ? "punk-purple-throw" : $"punk-purple-{animationFrame + 1}",
         EnemyKind.EmoBoss => enemy.ThrowPoseTicksRemaining > 0 ? "emo-boss-throw" : $"emo-boss-{animationFrame + 1}",
-        EnemyKind.OldMan => enemy.CaneSwingTicksRemaining > Enemy.CaneWaveDurationTicks ? "old-man-windup"
+        EnemyKind.OldMan or EnemyKind.Grandpa => enemy.CaneSwingTicksRemaining > Enemy.CaneWaveDurationTicks ? "old-man-windup"
           : enemy.CaneSwingTicksRemaining > 0 ? "old-man-swing" : $"old-man-walk-{animationFrame + 1}",
         EnemyKind.DungBag => $"dung-bag-walk-{animationFrame + 1}",
         EnemyKind.CreepyCrawler => $"creepy-crawler-crawl-{(int)(_animationTime * 4) % 2 + 1}",
@@ -633,7 +644,7 @@ internal sealed class PixelRenderer
         EnemyKind.PunkBlue => "punk-blue-squashed",
         EnemyKind.PunkPurple => "punk-purple-squashed",
         EnemyKind.EmoBoss => "emo-boss-squashed",
-        EnemyKind.OldMan => "old-man-squashed",
+        EnemyKind.OldMan or EnemyKind.Grandpa => "old-man-squashed",
         EnemyKind.DungBag => "dung-bag-squashed",
         EnemyKind.CreepyCrawler => "creepy-crawler-squashed",
         EnemyKind.Zombie => "zombie-squashed",
@@ -676,11 +687,11 @@ internal sealed class PixelRenderer
     else if ((game.DamageTicksRemaining / 5) % 2 == 0)
       DrawActor(_sprites[PlayerSprite(game.Character, playerFrame)], game.X, game.Y, cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);
 
-    if ((game.HasFlamethrower || game.HasBoomStick || game.HasChainWhip) && !game.IsDying && !game.IsFinishingToilet && game.PipeReliefTicksRemaining == 0 && (game.DamageTicksRemaining / 5) % 2 == 0)
+    if ((game.HasFlamethrower || game.HasBoomStick || game.HasChainWhip || game.HasToiletPaper) && !game.IsDying && !game.IsFinishingToilet && game.PipeReliefTicksRemaining == 0 && (game.DamageTicksRemaining / 5) % 2 == 0)
     {
       int weaponX = (int)Math.Round((game.X + (Game.BodyWidth / 2)) * TileSize) - 8 - cameraX;
       int weaponY = HeaderHeight + (int)Math.Round((game.Y + game.PlayerHeight - 0.65) * TileSize) - 8 - cameraY;
-      Frame.Draw(_sprites[game.HasChainWhip ? "chain-whip" : game.HasBoomStick ? "boom-stick" : "flamethrower"], weaponX, weaponY, game.FacingDirection < 0);
+      Frame.Draw(_sprites[game.HasToiletPaper ? "toilet-paper" : game.HasChainWhip ? "chain-whip" : game.HasBoomStick ? "boom-stick" : "flamethrower"], weaponX, weaponY, game.FacingDirection < 0);
     }
 
     if (game.IsBurning && !game.IsDying)
@@ -797,7 +808,7 @@ internal sealed class PixelRenderer
       DrawWeaponQuote(game.BoomStickQuote, "BOOM-STICK!");
 
     if (!game.IsDying && game.EnemyQuoteTicksRemaining > 0)
-      DrawWeaponQuote(game.EnemyQuote, "UNDERWORLD");
+      DrawWeaponQuote(game.EnemyQuote, "TRASH TALK");
 
     if (game.PipeTravelTicksRemaining > 0)
     {

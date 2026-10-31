@@ -32,6 +32,7 @@ public sealed class Game
   public const int PipeReliefBonusTicks = 5 * 60;
   public const int PipeReliefDurationTicks = 36;
   public const int ToiletFinishDurationTicks = 210;
+  public const int ToiletPaperCooldownTicks = 24;
   public const int PoopSlowDurationTicks = 300;
   public const double PoopSpeedMultiplier = 0.5;
   public const int PoopSplatterDurationTicks = 120;
@@ -59,6 +60,8 @@ public sealed class Game
   private readonly List<CoinRewardPopup> _rewardPopups = [];
   private readonly List<ThrownPoop> _thrownPoop = [];
   private readonly HashSet<Enemy> _whipHits = [];
+  private readonly List<ToiletPaperRoll> _toiletPaperRolls = [];
+  private int _toiletPaperCooldownTicks;
   private readonly HashSet<(int X, int Y)> _usedReliefPipes = [];
   private double _toiletStartX, _toiletStartY;
 
@@ -170,6 +173,9 @@ public sealed class Game
   public IReadOnlyList<GrowthHeart> GrowthHearts => _growthHearts;
   public bool HasBoomStick { get; private set; }
   public bool HasChainWhip { get; private set; }
+  public bool HasToiletPaper { get; private set; }
+  public int ToiletPaperDamage => PlayerPowerLevel + 2;
+  public IReadOnlyList<ToiletPaperRoll> ToiletPaperRolls => _toiletPaperRolls;
   public bool HasEnteredUnderworld { get; private set; }
   public bool HasFlamethrower { get; private set; }
   public bool IsBurning => BurnTicksRemaining > 0;
@@ -196,7 +202,7 @@ public sealed class Game
   public double PlayerSpeed => PlayerSettings.Speed * (SlowTicksRemaining > 0 ? PoopSpeedMultiplier : 1) * (IsInSludge ? 0.7 : 1);
   public IReadOnlyList<PoopPile> PoopPiles => _poopPiles;
   public int PoopSplatterTicksRemaining { get; private set; }
-  public int PowerUpLevel => HasChainWhip ? 4 : HasBoomStick ? 3 : HasFlamethrower ? 2 : IsLarge || _growthPending ? 1 : 0;
+  public int PowerUpLevel => HasToiletPaper ? 5 : HasChainWhip ? 4 : HasBoomStick ? 3 : HasFlamethrower ? 2 : IsLarge || _growthPending ? 1 : 0;
   public bool ReturnedToDaylight { get; private set; }
   public IReadOnlyList<CoinRewardPopup> RewardPopups => _rewardPopups;
   public long RunTicks { get; private set; }
@@ -355,6 +361,9 @@ public sealed class Game
     if (ShotgunBlast is { } blast)
       ShotgunBlast = blast.AgeTicks + 1 >= ShotgunBlast.DurationTicks ? null : blast with { AgeTicks = blast.AgeTicks + 1 };
 
+    if (_toiletPaperCooldownTicks > 0)
+      _toiletPaperCooldownTicks--;
+
     if (_shotgunReloadTicks > 0)
       _shotgunReloadTicks--;
 
@@ -424,7 +433,12 @@ public sealed class Game
       return;
 
     TryGrow();
-    if (HasChainWhip)
+    if (HasToiletPaper)
+    {
+      if (IsLarge && fireHeld && !_fireWasHeld && _toiletPaperCooldownTicks == 0)
+        ThrowToiletPaper();
+    }
+    else if (HasChainWhip)
       UpdateChainWhip(fireHeld);
     else if (HasBoomStick)
     {
@@ -584,9 +598,9 @@ public sealed class Game
       if (enemy.IsTeen && !stunned && !dodging)
         AdvanceTeenAttack(enemy);
 
-      if (enemy.Kind == EnemyKind.OldMan)
+      if (enemy.Kind is EnemyKind.OldMan or EnemyKind.Grandpa)
       {
-        AdvanceCaneAttack(enemy, stunned || dodging);
+        AdvanceCaneAttack(enemy, stunned || dodging || enemy.Kind == EnemyKind.Grandpa && Math.Abs(X - enemy.X) > 8);
         if (IsDying)
           return;
       }
@@ -624,6 +638,7 @@ public sealed class Game
       }
     }
 
+    AdvanceToiletPaperRolls();
     AdvanceEnemyProjectiles();
     if (IsDying)
       return;
@@ -911,10 +926,13 @@ public sealed class Game
       if (!Overlaps(X, Y, PlayerHeight, heart.X, heart.Y))
         continue;
 
+      if (heart.IsToiletPaper && (!IsLarge || IsBurning || HasToiletPaper))
+        continue;
+
       if (heart.IsChainWhip && (!IsLarge || IsBurning || HasChainWhip))
         continue;
 
-      if ((heart.IsFlamethrower || heart.IsBoomStick) && (!IsLarge || IsBurning || HasBoomStick || HasChainWhip))
+      if ((heart.IsFlamethrower || heart.IsBoomStick) && (!IsLarge || IsBurning || HasBoomStick || HasChainWhip || HasToiletPaper))
         continue;
 
       _growthHearts.RemoveAt(i);
@@ -922,8 +940,26 @@ public sealed class Game
         _collectedItems.Add((_levelIndex, heart.SourceX, heart.SourceY));
 
       Score += 100;
+      if (heart.IsToiletPaper)
+      {
+        HasToiletPaper = true;
+        HasChainWhip = HasBoomStick = HasFlamethrower = false;
+        BoomStickQuoteTicksRemaining = 0;
+        ShotgunBlast = null;
+        Flame = null;
+        ClearFlamethrowerQuote();
+        ClearWhipSwing();
+        _toiletPaperRolls.Clear();
+        _toiletPaperCooldownTicks = 0;
+        Message = "Toilet paper! X or CTRL to throw!";
+        SoundRequested?.Invoke(GameSound.PowerUp);
+        continue;
+      }
+
       if (heart.IsChainWhip)
       {
+        HasToiletPaper = false;
+        _toiletPaperRolls.Clear();
         HasChainWhip = true;
         HasBoomStick = HasFlamethrower = false;
         BoomStickQuoteTicksRemaining = 0;
@@ -994,6 +1030,8 @@ public sealed class Game
     HasFlamethrower = false;
     HasBoomStick = false;
     HasChainWhip = false;
+    HasToiletPaper = false;
+    _toiletPaperRolls.Clear();
     ClearWhipSwing();
     BoomStickQuoteTicksRemaining = 0;
     ShotgunBlast = null;
@@ -1110,6 +1148,9 @@ public sealed class Game
     HasFlamethrower = preserveGrowth && HasFlamethrower;
     HasBoomStick = preserveGrowth && HasBoomStick;
     HasChainWhip = preserveGrowth && HasChainWhip;
+    HasToiletPaper = preserveGrowth && HasToiletPaper;
+    _toiletPaperCooldownTicks = 0;
+    _toiletPaperRolls.Clear();
     ClearWhipSwing();
     BoomStickQuoteTicksRemaining = 0;
     ShotgunBlast = null;
@@ -1137,11 +1178,12 @@ public sealed class Game
     _facingDirection = 1;
     DamageTicksRemaining = 0;
     Level = Level.Load(_files[_levelIndex]);
-    if (Level.StartsWithShotgun)
+    if (Level.StartsWithShotgun || Level.StartsWithChainWhip || Level.StartsWithToiletPaper)
     {
       _growthPending = true;
-      HasBoomStick = true;
-      HasChainWhip = false;
+      HasBoomStick = Level.StartsWithShotgun;
+      HasChainWhip = Level.StartsWithChainWhip;
+      HasToiletPaper = Level.StartsWithToiletPaper;
       HasFlamethrower = false;
     }
 
@@ -1161,7 +1203,7 @@ public sealed class Game
     {
       for (int x = 0; x < Level.Width; x++)
       {
-        if (Level.Tile(x, y) is 'o' or '?' or 'M' or 'F' or 'Q' or 'W' or 'k')
+        if (Level.Tile(x, y) is 'o' or '?' or 'M' or 'F' or 'Q' or 'W' or 'L' or 'k')
           _levelItems.Add((x, y));
       }
     }
@@ -1191,6 +1233,7 @@ public sealed class Game
       .Concat(Level.BluePunkSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.PunkBlue)))
       .Concat(Level.PurplePunkSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.PunkPurple)))
       .Concat(Level.EmoBossSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - Enemy.EmoBossBodyHeight, EnemyKind.EmoBoss)))
+      .Concat(Level.GrandpaSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.Grandpa)))
       .Concat(Level.OldManSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.OldMan)))
       .Concat(Level.BossSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.DungBag)))
       .ToList();
@@ -1203,6 +1246,10 @@ public sealed class Game
     TryGrow();
     if (Level.StartsWithShotgun)
       Message = "Shotgun ready! Blast the exit wall.";
+    else if (Level.StartsWithToiletPaper)
+      Message = "Toilet paper ready! X or CTRL to throw!";
+    else if (Level.StartsWithChainWhip)
+      Message = "Chain whip ready! X or CTRL to lash!";
   }
 
   private void Move(ref double x, ref double y, double distance, bool horizontal, bool bump, out bool hit, double height = BodyHeight)
@@ -1246,14 +1293,15 @@ public sealed class Game
       {
         if (bump && distance < 0)
         {
-          if (Level.Tile(cell.X, cell.Y) is 'M' or 'F' or 'Q' or 'W')
+          if (Level.Tile(cell.X, cell.Y) is 'M' or 'F' or 'Q' or 'W' or 'L')
           {
             bool flamethrower = Level.Tile(cell.X, cell.Y) == 'F';
             bool shotgun = Level.Tile(cell.X, cell.Y) == 'Q';
             bool whip = Level.Tile(cell.X, cell.Y) == 'W';
+            bool toiletPaper = Level.Tile(cell.X, cell.Y) == 'L';
             Level.UseBlock(cell.X, cell.Y);
-            _growthHearts.Add(new GrowthHeart(cell.X + 0.125, cell.Y - BodyHeight, _facingDirection, cell.X, cell.Y, flamethrower, shotgun, whip));
-            Message = whip ? "Catch the chain whip!" : shotgun ? "Catch the Boom-Stick!" : flamethrower ? "Catch the flamethrower!" : "Catch the heart!";
+            _growthHearts.Add(new GrowthHeart(cell.X + 0.125, cell.Y - BodyHeight, _facingDirection, cell.X, cell.Y, flamethrower, shotgun, whip, toiletPaper));
+            Message = toiletPaper ? "Catch the toilet paper!" : whip ? "Catch the chain whip!" : shotgun ? "Catch the Boom-Stick!" : flamethrower ? "Catch the flamethrower!" : "Catch the heart!";
           }
           else if (Level.Tile(cell.X, cell.Y) == '?')
           {
@@ -1309,10 +1357,71 @@ public sealed class Game
     }
   }
 
+  private void ThrowToiletPaper()
+  {
+    double x = _facingDirection > 0 ? X + BodyWidth : X - ToiletPaperRoll.Size;
+    _toiletPaperRolls.Add(new ToiletPaperRoll(x, Y + PlayerHeight - 0.95, _facingDirection, ToiletPaperDamage));
+    _toiletPaperCooldownTicks = ToiletPaperCooldownTicks;
+    SoundRequested?.Invoke(GameSound.ToiletPaperThrow);
+  }
+
+  private void AdvanceToiletPaperRolls()
+  {
+    for (int index = _toiletPaperRolls.Count - 1; index >= 0; index--)
+    {
+      var roll = _toiletPaperRolls[index];
+      if (++roll.AgeTicks >= ToiletPaperRoll.LifetimeTicks)
+      {
+        _toiletPaperRolls.RemoveAt(index);
+        continue;
+      }
+
+      roll.VelocityY += 14 * Step;
+      double dx = roll.Direction * ToiletPaperRoll.Speed * Step, dy = roll.VelocityY * Step;
+      int steps = Math.Max(1, (int)Math.Ceiling(Math.Max(Math.Abs(dx), Math.Abs(dy)) / 0.1));
+      for (int step = 0; step < steps; step++)
+      {
+        roll.X += dx / steps;
+        roll.Y += dy / steps;
+        bool wall = roll.X < 0 || roll.X + ToiletPaperRoll.Size > Level.Width || roll.Y > Level.Height
+          || Level.Solid((int)Math.Floor(roll.X), (int)Math.Floor(roll.Y))
+          || Level.Solid((int)Math.Floor(roll.X + ToiletPaperRoll.Size), (int)Math.Floor(roll.Y))
+          || Level.Solid((int)Math.Floor(roll.X), (int)Math.Floor(roll.Y + ToiletPaperRoll.Size))
+          || Level.Solid((int)Math.Floor(roll.X + ToiletPaperRoll.Size), (int)Math.Floor(roll.Y + ToiletPaperRoll.Size));
+        Enemy? target = wall ? null : Enemies.FirstOrDefault(enemy => enemy.CanInteract
+          && roll.X < enemy.X + BodyWidth && roll.X + ToiletPaperRoll.Size > enemy.X
+          && roll.Y < enemy.Y + enemy.BodyHeight && roll.Y + ToiletPaperRoll.Size > enemy.Y);
+        if (!wall && target is null)
+          continue;
+
+        _toiletPaperRolls.RemoveAt(index);
+        if (target is not null)
+        {
+          if (target.Hit(roll.Damage))
+            EnemyDefeated(target);
+          else
+            SoundRequested?.Invoke(GameSound.EnemySmash);
+        }
+
+        break;
+      }
+    }
+  }
+
   private void TakeDamage()
   {
     if (DamageTicksRemaining > 0)
       return;
+
+    if (HasToiletPaper)
+    {
+      HasToiletPaper = false;
+      _toiletPaperRolls.Clear();
+      DamageTicksRemaining = DamageProtectionTicks;
+      Message = "Lost toilet paper! Keep moving!";
+      SoundRequested?.Invoke(GameSound.PowerDown);
+      return;
+    }
 
     if (HasChainWhip)
     {
@@ -1424,6 +1533,7 @@ public sealed class Game
     _usedReliefPipes.Add((x, y));
     LevelTicksRemaining += PipeReliefBonusTicks;
     PipeReliefTicksRemaining = PipeReliefDurationTicks;
+    _toiletPaperRolls.Clear();
     VelocityY = 0;
     _jumpBuffer = _coyoteTime = 0;
     ClearWhipSwing();
@@ -1439,6 +1549,7 @@ public sealed class Game
     ToiletX = x;
     ToiletY = y;
     ToiletFinishTicksRemaining = ToiletFinishDurationTicks;
+    _toiletPaperRolls.Clear();
     _toiletStartX = X;
     _toiletStartY = Y;
     VelocityY = 0;
@@ -1485,6 +1596,7 @@ public sealed class Game
     PipeTravelTicksRemaining = PipeTravelDurationTicks;
     Flame = null;
     ShotgunBlast = null;
+    _toiletPaperRolls.Clear();
     ClearWhipSwing();
     VelocityY = 0;
     Message = HasEnteredUnderworld ? "Back to daylight!" : "Descending to the Underworld...";

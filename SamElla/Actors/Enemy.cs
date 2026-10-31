@@ -31,6 +31,7 @@ public sealed class Enemy
       EnemyKind.Worm => new EnemySettings(1, 1, 0),
       EnemyKind.PunkBlue or EnemyKind.PunkPurple => new EnemySettings(2, 4, 0),
       EnemyKind.EmoBoss => new EnemySettings(2, 10, 0),
+      EnemyKind.Grandpa => new EnemySettings(2, 3, 0),
       EnemyKind.OldMan => new EnemySettings(1.5, 10, 0),
       EnemyKind.DungBag => new EnemySettings(2.5, 10, 0),
       EnemyKind.ToasterCat => EnemyConfiguration.DefaultToasterCat,
@@ -52,7 +53,7 @@ public sealed class Enemy
   public EnemyKind Kind { get; }
   public bool IsBoss => Kind is EnemyKind.DungBag or EnemyKind.OldMan or EnemyKind.EmoBoss;
   public bool IsTeen => Kind is EnemyKind.PunkBlue or EnemyKind.PunkPurple or EnemyKind.EmoBoss;
-  public string Name => Kind == EnemyKind.EmoBoss ? "Emo Kid" : Kind is EnemyKind.PunkBlue or EnemyKind.PunkPurple ? "Punk-tard" : Kind == EnemyKind.OldMan ? "Old Man" : Kind == EnemyKind.DungBag ? "Dung-Bag" : Kind.ToString();
+  public string Name => Kind == EnemyKind.Grandpa ? "Grandpa" : Kind == EnemyKind.EmoBoss ? "Emo Kid" : Kind is EnemyKind.PunkBlue or EnemyKind.PunkPurple ? "Punk-tard" : Kind == EnemyKind.OldMan ? "Old Man" : Kind == EnemyKind.DungBag ? "Dung-Bag" : Kind.ToString();
   public int CaneSwingTicksRemaining { get; internal set; }
   public int AttackDirection { get; internal set; } = -1;
   public double AirWaveX { get; internal set; }
@@ -74,7 +75,7 @@ public sealed class Enemy
   public double BodyHeight => Kind switch
   {
     EnemyKind.EmoBoss => EmoBossBodyHeight,
-    EnemyKind.PunkBlue or EnemyKind.PunkPurple or EnemyKind.Zombie or EnemyKind.DungBag or EnemyKind.OldMan => Game.LargeBodyHeight,
+    EnemyKind.PunkBlue or EnemyKind.PunkPurple or EnemyKind.Zombie or EnemyKind.DungBag or EnemyKind.OldMan or EnemyKind.Grandpa => Game.LargeBodyHeight,
     EnemyKind.Worm => 0.45,
     EnemyKind.Fly => 0.6,
     EnemyKind.CreepyCrawler => CrawlerBodyHeight,

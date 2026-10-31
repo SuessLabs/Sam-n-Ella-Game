@@ -14,4 +14,5 @@ public enum EnemyKind
   PunkBlue,
   PunkPurple,
   EmoBoss,
+  Grandpa,
 }

@@ -427,6 +427,37 @@ Custom maps can enable `SpeedRun=true` (which sets the initial countdown to ten
 seconds), place `k` for pink Pepto bottles, and use `T` as the toilet goal.
 Ordinary levels keep their existing countdown and pipe behavior.
 
+### 04-02 through 04-06
+
+Four more daytime Speed Runs continue the ten-second countdown, Pepto refills,
+brick hurdles, two relief pipes per level, and toilet finishes:
+
+| Level | Name | Starting weapon |
+| --- | --- | --- |
+| 04-02 | Paper Chase | Throwable toilet paper |
+| 04-03 | Roll With It | Throwable toilet paper |
+| 04-04 | Whip It Quick | Chain whip |
+| 04-05 | Panic Parade | Chain whip |
+
+Each stage starts the player grown and equipped, including after a retry, with
+a spare weapon pickup near the start. Bottles remain 96 blocks apart, roughly
+eight seconds of running. Blue and purple punks throw bottles throughout these
+routes alongside regular grandpas. Grandpas have three health and swing a cane
+with a two-block air wave; they patrol as ordinary enemies and do not lock exits
+or use the boss head-stomp dodge.
+
+Press and release **X or Ctrl** to throw a spinning toilet-paper roll in a short
+arc. Throws have a 0.4-second cooldown and deal current stomp damage plus two
+to the first enemy hit. Terrain stops the roll without breaking bricks.
+The weapon has unlimited throws, carries between levels, and is lost before
+growth when taking damage. Small players cannot collect the pickup. Collecting
+a chain whip replaces toilet paper, and the later stages supply their own whip.
+
+04-06, Boss Fight - Placeholder, is a playable empty arena with a toilet exit
+and the ordinary 100-second timer. Its boss encounter is intentionally pending.
+Custom maps can use `L` for a toilet-paper pickup block, `g` for a regular grandpa,
+and `StartingPower=ToiletPaper` or `StartingPower=ChainWhip` for starting gear.
+
 ### Boss evasions and the expanded Emo Kid gauntlet
 
 03-06 is now 256 blocks long. Its middle section adds flies, worms, and both
