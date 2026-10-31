@@ -90,6 +90,10 @@ function gh
       Check ($arguments -contains '--draft' -and $arguments -contains $preFlag -and $arguments -contains '--latest=false') 'Release starts as a non-latest draft with the requested channel'
       $target = [Array]::IndexOf($arguments, '--target')
       Check ($arguments -contains '--verify-tag' -and $state.TagCommit -eq $arguments[$target + 1]) 'The release requires an existing tag pointing at the tested commit'
+      Check ($arguments -contains '--generate-notes') 'Both release channels request GitHub-generated release notes'
+      $notesIndex = [Array]::IndexOf($arguments, '--notes-file')
+      $notes = Get-Content -LiteralPath $arguments[$notesIndex + 1] -Raw
+      Check ($notes -like '*PR #69*' -and $notes -like '*Version: 0.7.0.108*' -and $notes.Contains($state.TagCommit)) 'The notes retain the triggering PR, version, and tested commit as an introduction'
       $state.Release = @{ draft = $true; prerelease = $state.IsPrerelease }
     }
     'upload' {
@@ -103,6 +107,7 @@ function gh
       $state.Uploaded = $true
     }
     'edit' {
+      Check ($arguments -notcontains '--notes' -and $arguments -notcontains '--notes-file') 'Publishing or resuming a draft preserves its generated notes'
       Check $state.Uploaded 'Release becomes public only after all assets upload'
       $preFlag = if ($state.IsPrerelease) { '--prerelease' } else { '--prerelease=false' }
       $latestFlag = if ($state.IsPrerelease) { '--latest=false' } else { '--latest=true' }
