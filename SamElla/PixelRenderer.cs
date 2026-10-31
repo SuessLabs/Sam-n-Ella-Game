@@ -679,12 +679,14 @@ internal sealed class PixelRenderer
       DrawActor(_sprites[PlayerSprite(game.Character, "player-splatter")], game.X, game.Y, cameraX, cameraY, _facingLeft, true);
     else if (game.PipeReliefTicksRemaining > 0)
     {
-      DrawActor(_sprites[PlayerSprite(game.Character, "player-idle")], game.X, game.Y,
-        cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);
-      int puffX = (int)Math.Round((game.X + Game.BodyWidth) * TileSize) - cameraX;
+      bool facingLeft = game.FacingDirection < 0;
+      int puffX = (int)Math.Round((game.X + (facingLeft ? Game.BodyWidth : 0)) * TileSize) - cameraX;
       int puffY = HeaderHeight + (int)Math.Round((game.Y + game.PlayerHeight - 0.25) * TileSize) - cameraY;
-      Frame.Fill(puffX + game.PipeReliefTicksRemaining % 5, puffY - 3, 5, 3, 0xFF754A44);
-      Frame.Fill(puffX + 4, puffY - 6, 3, 3, 0xFF82BD58);
+      int drift = 3 + (Game.PipeReliefDurationTicks - game.PipeReliefTicksRemaining) % 5;
+      Frame.Fill(puffX + (facingLeft ? drift : -drift - 5), puffY - 3, 5, 3, 0xFF754A44);
+      Frame.Fill(puffX + (facingLeft ? 7 : -10), puffY - 6, 3, 3, 0xFF82BD58);
+      DrawActor(_sprites[PlayerSprite(game.Character, game.IsLarge ? "player-large-idle" : "player-idle")], game.X, game.Y,
+        cameraX, cameraY, facingLeft, bodyHeight: game.PlayerHeight);
     }
     else if ((game.DamageTicksRemaining / 5) % 2 == 0)
       DrawActor(_sprites[PlayerSprite(game.Character, playerFrame)], game.X, game.Y, cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);

@@ -19,6 +19,7 @@ public sealed class Level
   public bool StartsWithShotgun { get; private set; }
   public bool StartsWithToiletPaper { get; private set; }
   public bool StartsWithChainWhip { get; private set; }
+  public bool StartsGrown { get; private set; }
   public bool IsSpeedRun { get; private set; }
   public BackgroundTheme Background { get; }
   public bool EnemiesAvoidLedges { get; }
@@ -107,7 +108,7 @@ public sealed class Level
         && bool.TryParse(setting[1], out bool timedRun))
         speedRun = timedRun;
       else if (setting[0].Equals("StartingPower", StringComparison.OrdinalIgnoreCase)
-        && new[] { "None", "Shotgun", "ChainWhip", "ToiletPaper" }.Contains(setting[1], StringComparer.OrdinalIgnoreCase))
+        && new[] { "None", "Growth", "Shotgun", "ChainWhip", "ToiletPaper" }.Contains(setting[1], StringComparer.OrdinalIgnoreCase))
         startingPower = setting[1];
       else if (setting[0].Equals("Background", StringComparison.OrdinalIgnoreCase)
         && Enum.TryParse(setting[1], true, out BackgroundTheme parsedBackground) && Enum.IsDefined(parsedBackground)
@@ -133,7 +134,7 @@ public sealed class Level
         && int.TryParse(setting[1], out int seconds) && seconds is >= 1 and <= 9999)
         timeLimitSeconds = seconds;
       else
-        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Name=1..32 display characters, Background=Day or Background=Night or Background=Underworld, EntryPipe/ExitPipe=x,y,targetX,targetY, StartingPower=None/Shotgun/ChainWhip/ToiletPaper, SpeedRun=true/false, EnemyLedges=Turn/Fall, or TimeLimit=1..9999 seconds.");
+        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Name=1..32 display characters, Background=Day or Background=Night or Background=Underworld, EntryPipe/ExitPipe=x,y,targetX,targetY, StartingPower=None/Growth/Shotgun/ChainWhip/ToiletPaper, SpeedRun=true/false, EnemyLedges=Turn/Fall, or TimeLimit=1..9999 seconds.");
 
       mapStart++;
       while (mapStart < lines.Length && string.IsNullOrWhiteSpace(lines[mapStart]))
@@ -153,6 +154,7 @@ public sealed class Level
     map.StartsWithShotgun = startingPower.Equals("Shotgun", StringComparison.OrdinalIgnoreCase);
     map.StartsWithToiletPaper = startingPower.Equals("ToiletPaper", StringComparison.OrdinalIgnoreCase);
     map.StartsWithChainWhip = startingPower.Equals("ChainWhip", StringComparison.OrdinalIgnoreCase);
+    map.StartsGrown = !startingPower.Equals("None", StringComparison.OrdinalIgnoreCase);
     map.IsSpeedRun = speedRun;
     int starts = 0, goals = 0;
 

@@ -1178,7 +1178,7 @@ public sealed class Game
     _facingDirection = 1;
     DamageTicksRemaining = 0;
     Level = Level.Load(_files[_levelIndex]);
-    if (Level.StartsWithShotgun || Level.StartsWithChainWhip || Level.StartsWithToiletPaper)
+    if (Level.StartsGrown)
     {
       _growthPending = true;
       HasBoomStick = Level.StartsWithShotgun;
