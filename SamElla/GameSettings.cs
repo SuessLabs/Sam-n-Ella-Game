@@ -1,10 +1,13 @@
 using SamElla.Audio;
+using SamElla.Updater;
 
 namespace SamElla;
 
 internal sealed class GameSettings
 {
   public AudioSettings Audio { get; private init; } = new();
+
+  public UpdateSettings Updates { get; private init; } = new();
 
   public PlayerRecords Records { get; private init; } = new();
 
@@ -13,6 +16,7 @@ internal sealed class GameSettings
   public static GameSettings Load(string path) => new()
   {
     Audio = AudioSettings.Load(path),
+    Updates = UpdateSettings.Load(path),
     Records = PlayerRecords.Load(path),
     Leaderboard = Leaderboard.Load(path),
   };
@@ -23,7 +27,7 @@ internal sealed class GameSettings
     try
     {
       Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-      File.WriteAllLines(temporaryPath, Audio.ToLines().Concat(Records.ToLines()).Concat(Leaderboard.ToLines()));
+      File.WriteAllLines(temporaryPath, Audio.ToLines().Concat(Updates.ToLines()).Concat(Records.ToLines()).Concat(Leaderboard.ToLines()));
       File.Move(temporaryPath, path, overwrite: true);
     }
 

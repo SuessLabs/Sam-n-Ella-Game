@@ -1,13 +1,16 @@
 using SamElla.Audio;
+using SamElla.Updater;
 
 namespace SamElla.Screens;
 
-internal sealed class SettingsScreen(AudioSettings audio)
+internal sealed class SettingsScreen(AudioSettings audio, UpdateSettings? updates = null)
 {
-  private const int RowCount = 5;
+  private const int RowCount = 6;
   private const int VolumeStep = 5;
 
   public AudioSettings Audio { get; } = audio;
+
+  public UpdateSettings Updates { get; } = updates ?? new();
 
   public bool IsActive { get; private set; }
 
@@ -46,7 +49,7 @@ internal sealed class SettingsScreen(AudioSettings audio)
         case 0x27: // Right: on / increase volume
         case 0x0D: // Enter
         case 0x20: // Space
-          if (SelectedIndex == 4)
+          if (SelectedIndex == 5)
           {
             if (code is 0x0D or 0x20)
             {
@@ -71,9 +74,12 @@ internal sealed class SettingsScreen(AudioSettings audio)
             break;
           }
 
-          bool enabled = SelectedIndex == 0 ? Audio.MusicEnabled : Audio.SoundEffectsEnabled;
+          bool enabled = SelectedIndex == 4 ? Updates.IncludePrereleases
+            : SelectedIndex == 0 ? Audio.MusicEnabled : Audio.SoundEffectsEnabled;
           enabled = code == 0x25 ? false : code == 0x27 ? true : !enabled;
-          if (SelectedIndex == 0)
+          if (SelectedIndex == 4)
+            Updates.IncludePrereleases = enabled;
+          else if (SelectedIndex == 0)
             Audio.MusicEnabled = enabled;
           else
             Audio.SoundEffectsEnabled = enabled;

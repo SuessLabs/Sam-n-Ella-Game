@@ -27,7 +27,12 @@ try
   if (!OperatingSystem.IsWindows())
     throw new PlatformNotSupportedException("Sam n' Ella currently has a Windows backend. Its game and pixel renderer are portable; other window backends can be added later.");
 
-  using var updates = new AppUpdates(new VelopackUpdateBackend(), exception =>
+  string settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    "SamElla", "settings.txt");
+  var savedSettings = GameSettings.Load(settingsPath);
+  var settings = new SettingsScreen(savedSettings.Audio, savedSettings.Updates);
+
+  using var updates = new AppUpdates(new VelopackUpdateBackend(savedSettings.Updates.IncludePrereleases), exception =>
   {
     try
     {
@@ -68,11 +73,6 @@ try
 
   foreach (var file in files)
     Level.Load(file);
-
-  string settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-    "SamElla", "settings.txt");
-  var savedSettings = GameSettings.Load(settingsPath);
-  var settings = new SettingsScreen(savedSettings.Audio);
 
   // Restore saved audio preferences before starting any music or sound effects.
   using var audio = new WindowsGameAudio();
