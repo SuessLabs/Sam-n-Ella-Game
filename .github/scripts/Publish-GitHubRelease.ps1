@@ -147,7 +147,8 @@ if ($null -eq $release)
     $notes = "Automatic $Channel release after PR #$PullRequestNumber.`n`nVersion: $Version`nCommit: $Commit`n"
     [IO.File]::WriteAllText($notesPath, $notes, [Text.UTF8Encoding]::new($false))
     $null = Invoke-ReleaseGh -Arguments @('release', 'create', $tag, '--repo', $Repository,
-      '--target', $Commit, '--verify-tag', '--title', $tag, '--notes-file', $notesPath, '--draft', $prereleaseFlag, '--latest=false')
+      '--target', $Commit, '--verify-tag', '--title', $tag, '--generate-notes', '--notes-file', $notesPath,
+      '--draft', $prereleaseFlag, '--latest=false')
   }
   finally
   {

@@ -130,6 +130,12 @@ release. Retrying a failed run reuses its original versioned commit, resumes
 an unfinished draft, and leaves an already published prerelease untouched.
 Existing tags pointing at another commit are rejected rather than moved.
 
+Both prereleases and stable releases use GitHub's **Generate Release Notes**
+feature (`gh release create --generate-notes`). The triggering PR, version, and
+tested commit appear above the generated notes. Notes are generated when the
+draft is created and preserved when a failed upload is retried. Already published
+releases are left unchanged.
+
 Merging into `master` runs the same build, tests, and packaging against the
 exact master merge commit, then publishes a separate stable release marked
 **Latest**. It does not increment the version again. Its tag has no `-pre`
