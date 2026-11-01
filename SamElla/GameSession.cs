@@ -171,13 +171,14 @@ internal sealed class GameSession : IDisposable
       return;
     }
 
-    bool openedLevelSelect = levelSelect is null && levelSelectCheat.HandleInput(window.KeyPresses, window.Active);
+    bool openedLevelSelect = levelSelect is null && levelSelectCheat.HandleInput(window.KeyPresses, window.Active, mobileControls: mobileHost);
     if (openedLevelSelect)
     {
       files = LevelSelectScreen.Discover(levelsPath);
       levelSelect = new LevelSelectScreen(files);
       audio.SetFlamethrowerActive(false);
       audio.SetMusicPaused(true);
+      audio.Play(GameSound.KonamiActivated);
     }
 
     if (levelSelect is not null)
@@ -224,7 +225,9 @@ internal sealed class GameSession : IDisposable
         return;
       }
 
-      var titleAction = titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active, mobileControls: mobileHost);
+      // The first A belongs to the double code; the second A opens level select above.
+      var titleAction = titleScreen.HandleInput(elapsed, levelSelectCheat.ConsumesTitleConfirmation ? [] : window.KeyPresses,
+        window.Active, mobileControls: mobileHost);
       if (titleScreen.KonamiCodeJustActivated)
         audio.Play(GameSound.KonamiActivated);
 

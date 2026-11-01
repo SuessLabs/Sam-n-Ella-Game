@@ -13,6 +13,43 @@ namespace SamElla.Tests;
 public sealed class TitleScreenTests
 {
   [TestMethod]
+  [DataRow(false)]
+  [DataRow(true)]
+  public void DoubleKonamiOpensLevelSelectOnlyAfterBothAInputs(bool mobileControls)
+  {
+    var cheat = new LevelSelectCheat();
+    int b = mobileControls ? 0x1B : 0x42;
+    int a = mobileControls ? 0x0D : 0x41;
+    int[] keys = [0x26, 0x26, 0x26, 0x26, 0x28, 0x28, 0x28, 0x28,
+      0x25, 0x25, 0x27, 0x27, 0x25, 0x25, 0x27, 0x27, b, b, a, a];
+    for (int index = 0; index < keys.Length; index++)
+    {
+      Assert.AreEqual(index == keys.Length - 1, cheat.HandleInput([keys[index]], true, mobileControls));
+      Assert.AreEqual(index == keys.Length - 2, cheat.ConsumesTitleConfirmation);
+    }
+
+    Assert.IsFalse(cheat.HandleInput([], true, mobileControls));
+    Assert.IsFalse(cheat.ConsumesTitleConfirmation);
+    Assert.IsTrue(cheat.HandleInput(keys, true, mobileControls), "The full sequence can reopen level select.");
+  }
+
+  [TestMethod]
+  public void DoubleKonamiRejectsInterruptedInputAndSingleKonamiAndClearsOnFocusLoss()
+  {
+    var cheat = new LevelSelectCheat();
+    int[] directions = [0x26, 0x26, 0x26, 0x26, 0x28, 0x28, 0x28, 0x28,
+      0x25, 0x25, 0x27, 0x27, 0x25, 0x25, 0x27, 0x27];
+    Assert.IsFalse(cheat.HandleInput([0x26, 0x26, 0x28, 0x28, 0x25, 0x27, 0x25, 0x27, 0x42, 0x41], true));
+    Assert.IsFalse(cheat.HandleInput(directions, true));
+    Assert.IsFalse(cheat.HandleInput([], false));
+    Assert.IsFalse(cheat.HandleInput([0x42, 0x42, 0x41, 0x41], true));
+    Assert.IsFalse(cheat.HandleInput(directions, true));
+    Assert.IsFalse(cheat.HandleInput([0x42, 0x43, 0x42, 0x41, 0x41], true));
+    Assert.IsTrue(cheat.HandleInput(directions.Concat(new[] { 0x58, 0x58, 0x20, 0x20 }).ToArray(), true, mobileControls: true),
+      "Gameplay Attack and Jump must also be recognized on mobile.");
+  }
+
+  [TestMethod]
   public void DeadbeefRequiresCorrectSequenceAndFocusAndRequestsOnlyOnce()
   {
     var cheat = new LevelSelectCheat();

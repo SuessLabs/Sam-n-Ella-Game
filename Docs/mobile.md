@@ -21,6 +21,12 @@ Successful entry plays an original three-second chiptune sting with syncopated
 pulse leads, crunchy triangle bass, and noise percussion. It uses the Sound FX
 volume and pauses background music until the cue finishes on both hosts.
 
+For level select, double every input: **Up x4, Down x4, Left x2, Right x2,
+Left x2, Right x2, Attack x2, Jump x2**. Windows uses the B and A keys instead.
+The first Jump is reserved for the code, and the second opens the browser without
+confirming a level. Release it, choose a level with the arrows, then press Jump
+(Enter on Windows) to confirm. The original Windows `DEADBEEF` shortcut also works.
+
 While game content and audio load, the mobile page displays
 `Docs/GooglePlay/images/feature-graphic-1024x500.png`, stretched to fill its
 available screen area. It is bundled as `feature_graphic.png`, so loading artwork
