@@ -62,6 +62,9 @@ internal sealed class GameSession : IDisposable
   public Func<bool>? TryApplyUpdate { get; init; }
   public bool MenuControls => titleScreen.IsActive || settings.IsActive || leaderboard.IsActive
     || levelSelect is not null || game.Paused || game.IsDying || game.Won || levelStart.IsActive;
+  public bool CanPause => !titleScreen.IsActive && !settings.IsActive && !leaderboard.IsActive
+    && levelSelect is null && !levelStart.IsActive && ReferenceEquals(presentedLevel, game.Level)
+    && !game.IsDying && !game.Won && game.Lives > 0;
 
   public void Suspend()
   {
@@ -104,10 +107,22 @@ internal sealed class GameSession : IDisposable
     audio.SetFlamethrowerActive(levelSelect is null && window.Active && !titleScreen.IsActive && !levelStart.IsActive
       && !game.Paused && !game.IsDying && !game.Won && game.Flame is not null);
 
+    if (mobileHost && window.Active && CanPause && window.KeyPresses.Contains(GameKeyboard.PauseKey))
+    {
+      if (game.Paused)
+        game.Paused = false;
+      else
+        pauseScreen.Open(game);
+
+      accumulator = 0;
+      renderer.Draw(game, 0, 0, pauseScreen.SelectedIndex);
+      return;
+    }
+
     bool openedLeaderboard = !titleScreen.IsActive && levelSelect is null && leaderboard.TryOpenFor(game);
     if (leaderboard.IsActive)
     {
-      if (!openedLeaderboard && leaderboard.HandleInput(window.KeyPresses, window.Active, DateTimeOffset.Now))
+      if (!openedLeaderboard && leaderboard.HandleInput(window.KeyPresses, window.Active, DateTimeOffset.Now, allowCancel: mobileHost))
         savedSettings.Save(settingsPath);
 
       accumulator = 0;
@@ -208,7 +223,7 @@ internal sealed class GameSession : IDisposable
 
       if (window.Active && window.Pressed(GameKey.Escape))
       {
-        ExitRequested = true;
+        ExitRequested = !mobileHost;
         return;
       }
 

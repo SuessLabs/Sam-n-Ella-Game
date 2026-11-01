@@ -67,15 +67,18 @@ with the appropriate signing identity and provisioning profile.
 
 The four-arrow D-pad always appears as a cross: Up above Left/Right, and Down
 below. Up retains the Windows Up-arrow jump mapping during gameplay. Start and
-Select sit at the bottom center. Start sends Enter, confirming menu choices and
-pausing/resuming through the pause menu. Select cycles menu choices and is
-inactive during gameplay. Attack and Jump sit side by side at the bottom right,
-with Roman numeral I above Attack and II above Jump.
+Select sit at the bottom center. Start toggles pause during gameplay and in the
+pause menu; it does not confirm menu choices. Select cycles menu choices and is
+inactive during gameplay. Jump accepts screen selections and Attack cancels or
+goes back; in gameplay they retain their normal jump and weapon actions.
+Attack and Jump sit side by side at the bottom right, with Roman numeral I above
+Attack and an outlined circle above Jump. Inactive controls are dimmed.
+Cancelling the mobile high-score entry skips submitting that score.
 
 Fingers are tracked independently, so movement, jumping, and attacks work
 together; dragging off a control, cancelling a touch, or suspending clears held
-input. Menus and high-score initials use the D-pad and Start. Settings can be
-closed by selecting its Back row and pressing Start; the Android Back button
+input. Menus and high-score initials use the D-pad and Jump to accept. Settings
+can be closed with Attack or by selecting its Back row and pressing Jump; the Android Back button
 also closes Settings or resumes from Pause.
 
 The game stays at 384 x 240. A safe-area-aware landscape canvas scales it to the

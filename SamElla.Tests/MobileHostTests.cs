@@ -105,16 +105,16 @@ public sealed class MobileHostTests : GameTestBase
     Assert.AreEqual((int?)0x28, down.Key);
     var start = layout.Buttons.Single(button => button.Label == "START");
     var select = layout.Buttons.Single(button => button.Label == "SELECT");
-    Assert.AreEqual((int?)0x0D, start.Key);
+    Assert.AreEqual(menu ? null : (int?)GameKeyboard.PauseKey, start.Key);
     Assert.AreEqual(menu ? (int?)0x28 : null, select.Key);
     Assert.AreEqual(start.Y, select.Y);
     Assert.IsTrue(select.X < 960 && start.X > 960);
     var attack = layout.Buttons.Single(button => button.Label == "ATTACK");
     var jump = layout.Buttons.Single(button => button.Label == "JUMP");
     Assert.AreEqual("I", attack.Heading);
-    Assert.AreEqual("II", jump.Heading);
-    Assert.AreEqual((int?)0x58, attack.Key);
-    Assert.AreEqual((int?)0x20, jump.Key);
+    Assert.AreEqual("○", jump.Heading);
+    Assert.AreEqual(menu ? (int?)0x1B : 0x58, attack.Key);
+    Assert.AreEqual(menu ? (int?)0x0D : 0x20, jump.Key);
     Assert.AreEqual(attack.Y, jump.Y);
     Assert.IsTrue(attack.X > start.X + start.Width && jump.X > attack.X + attack.Width);
     Assert.AreEqual(down.Y + down.Height, jump.Y + jump.Height);
@@ -171,6 +171,8 @@ public sealed class MobileHostTests : GameTestBase
       using var audio = new FakeAudio();
       using var input = new TouchInput();
       using var session = new GameSession(Path.Combine(AppContext.BaseDirectory, "Assets"), directory, NextPath, audio, desktopUpdates: false);
+      Press(session, input, 0x1B);
+      Assert.IsFalse(session.ExitRequested, "Cancel at the root mobile menu must not quit the application.");
       Press(session, input, 0x0D);
       Press(session, input, 0x0D);
       session.Tick(input, Game.Step);
@@ -197,8 +199,17 @@ public sealed class MobileHostTests : GameTestBase
       Press(session, input, 0x0D);
       Assert.IsFalse(session.Game.Paused);
       Assert.AreEqual(clock - 1, session.Game.LevelTicksRemaining);
-      Press(session, input, 0x0D);
+      Press(session, input, GameKeyboard.PauseKey);
       Assert.IsTrue(session.Game.Paused);
+      Press(session, input, 0x28);
+      Press(session, input, GameKeyboard.PauseKey);
+      Assert.IsFalse(session.Game.Paused, "Start toggles pause instead of accepting the selected Settings item.");
+      Press(session, input, GameKeyboard.PauseKey);
+      Press(session, input, 0x28);
+      Press(session, input, 0x0D);
+      Assert.IsFalse(session.CanPause, "Jump accepts the Settings selection; Start is inactive inside Settings.");
+      Press(session, input, 0x1B);
+      Assert.IsTrue(session.Game.Paused, "Attack cancels Settings back to the pause menu.");
       Press(session, input, 0x1B);
       Assert.IsFalse(session.Game.Paused);
       Assert.IsFalse(session.ExitRequested, "Mobile Back resumes the pause menu rather than exiting the game.");
@@ -211,6 +222,26 @@ public sealed class MobileHostTests : GameTestBase
       File.Delete(level);
       Directory.Delete(directory);
     }
+  }
+
+  [TestMethod]
+  public void StartIsAvailableWhilePausedAndMenuActionsKeepTheirGameplayMappingsSeparate()
+  {
+    var menu = new MobileLayout(1920, 1080, 3, menu: true, canPause: true);
+    var game = new MobileLayout(1920, 1080, 3, menu: false);
+    Assert.AreEqual((int?)GameKeyboard.PauseKey, menu.Buttons.Single(button => button.Label == "START").Key);
+    using var input = new TouchInput();
+    input.SetPointer(1, menu.Buttons.Single(button => button.Label == "JUMP").Key);
+    Assert.IsTrue(input.KeyPresses.Contains(0x0D));
+    Assert.IsFalse(input.Down(GameKey.Jump));
+    input.Clear();
+    input.SetPointer(1, menu.Buttons.Single(button => button.Label == "ATTACK").Key);
+    Assert.IsTrue(input.Down(GameKey.Escape));
+    Assert.IsFalse(input.Down(GameKey.Fire));
+    input.Clear();
+    input.SetPointer(1, game.Buttons.Single(button => button.Label == "JUMP").Key);
+    input.SetPointer(2, game.Buttons.Single(button => button.Label == "ATTACK").Key);
+    Assert.IsTrue(input.Down(GameKey.Jump) && input.Down(GameKey.Fire));
   }
 
   [TestMethod]

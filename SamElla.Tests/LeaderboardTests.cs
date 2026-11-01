@@ -15,6 +15,22 @@ public sealed class LeaderboardTests : GameTestBase
   private static readonly DateTimeOffset Date = new(2026, 10, 29, 12, 0, 0, TimeSpan.FromHours(-4));
 
   [TestMethod]
+  [DataRow(false)]
+  [DataRow(true)]
+  public void MobileCanCancelInitialsWithoutSavingWhileDesktopKeepsExistingEntryBehavior(bool allowCancel)
+  {
+    var screen = new LeaderboardScreen(new Leaderboard());
+    var game = WinGame();
+    screen.TryOpenFor(game);
+    int[] keys = allowCancel ? [0x1B, 0x0D] : [0x1B];
+    Assert.IsFalse(screen.HandleInput(keys, true, Date, allowCancel));
+    Assert.AreEqual(!allowCancel, screen.IsActive);
+    Assert.AreEqual(!allowCancel, screen.IsEnteringInitials);
+    Assert.IsEmpty(screen.Board.Entries);
+    Assert.IsFalse(screen.TryOpenFor(game));
+  }
+
+  [TestMethod]
   public void ArrowsEditSelectedPositionAndEnterAcceptsWithoutClosingBoard()
   {
     var screen = new LeaderboardScreen(new Leaderboard());

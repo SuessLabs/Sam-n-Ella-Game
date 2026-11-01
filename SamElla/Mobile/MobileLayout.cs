@@ -25,7 +25,7 @@ internal sealed class MobileLayout
   public GameViewport Viewport { get; }
   public IReadOnlyList<TouchRegion> Buttons { get; }
 
-  public MobileLayout(double width, double height, double density, bool menu)
+  public MobileLayout(double width, double height, double density, bool menu, bool? canPause = null)
   {
     double unit = Math.Min(Math.Max(1, density), Math.Min(width / 600, height / 300));
     double size = 48 * unit, gap = 6 * unit, bottom = height - 8 * unit;
@@ -43,9 +43,9 @@ internal sealed class MobileLayout
       new(0x27, "→", x + 2 * (size + gap), middleY, size, size),
       new(0x28, "↓", x + size + gap, bottom - size, size, size),
       new(menu ? 0x28 : null, "SELECT", width / 2 - gap / 2 - middleWidth, bottom - middleHeight, middleWidth, middleHeight),
-      new(0x0D, "START", width / 2 + gap / 2, bottom - middleHeight, middleWidth, middleHeight),
-      new(0x58, "ATTACK", width - 12 * unit - actionSize * 2 - gap, bottom - actionSize, actionSize, actionSize, "I"),
-      new(0x20, "JUMP", width - 12 * unit - actionSize, bottom - actionSize, actionSize, actionSize, "II"),
+      new((canPause ?? !menu) ? GameKeyboard.PauseKey : null, "START", width / 2 + gap / 2, bottom - middleHeight, middleWidth, middleHeight),
+      new(menu ? 0x1B : 0x58, "ATTACK", width - 12 * unit - actionSize * 2 - gap, bottom - actionSize, actionSize, actionSize, "I"),
+      new(menu ? 0x0D : 0x20, "JUMP", width - 12 * unit - actionSize, bottom - actionSize, actionSize, actionSize, "○"),
     ];
   }
 

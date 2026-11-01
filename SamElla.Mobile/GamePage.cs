@@ -150,7 +150,7 @@ internal sealed class GamePage : ContentPage, IDisposable
     }
 
     double density = DeviceDisplay.MainDisplayInfo.Density;
-    _layout = new MobileLayout(args.Info.Width, args.Info.Height, density, _menu);
+    _layout = new MobileLayout(args.Info.Width, args.Info.Height, density, _menu, _session.CanPause);
     var view = _layout.Viewport;
     Buffer.BlockCopy(_session.Frame.Pixels, 0, _pixels, 0, _pixels.Length * sizeof(int));
     Marshal.Copy(_pixels, 0, _bitmap.GetPixels(), _pixels.Length);
@@ -161,24 +161,36 @@ internal sealed class GamePage : ContentPage, IDisposable
     {
       var rectangle = new SKRect((float)button.X, (float)button.Y,
         (float)(button.X + button.Width), (float)(button.Y + button.Height));
-      _buttonPaint.Color = new SKColor(35, 59, 78, 88);
+      _buttonPaint.Color = new SKColor(35, 59, 78, button.Key.HasValue ? (byte)88 : (byte)40);
       _buttonPaint.Style = SKPaintStyle.Fill;
       canvas.DrawRoundRect(rectangle, 12, 12, _buttonPaint);
-      _buttonPaint.Color = new SKColor(255, 213, 107, 180);
+      _buttonPaint.Color = new SKColor(255, 213, 107, button.Key.HasValue ? (byte)180 : (byte)80);
       _buttonPaint.Style = SKPaintStyle.Stroke;
       _buttonPaint.StrokeWidth = 2;
       canvas.DrawRoundRect(rectangle, 12, 12, _buttonPaint);
       _buttonPaint.Style = SKPaintStyle.Fill;
-      _buttonPaint.Color = new SKColor(255, 213, 107, 220);
+      _buttonPaint.Color = new SKColor(255, 213, 107, button.Key.HasValue ? (byte)220 : (byte)96);
       if (button.Label is "↑" or "↓" or "←" or "→")
       {
         DrawDirectionArrow(canvas, rectangle, button.Key!.Value);
       }
       else if (button.Heading is not null)
       {
-        _font.Size = (float)button.Height * 0.48f;
-        canvas.DrawText(button.Heading, rectangle.MidX, rectangle.Top + rectangle.Height * 0.52f,
-          SKTextAlign.Center, _font, _buttonPaint);
+        if (button.Heading == "○")
+        {
+          _buttonPaint.Style = SKPaintStyle.Stroke;
+          _buttonPaint.StrokeWidth = rectangle.Height * 0.035f;
+          canvas.DrawCircle(rectangle.MidX, rectangle.Top + rectangle.Height * 0.35f,
+            rectangle.Height * 0.17f, _buttonPaint);
+          _buttonPaint.Style = SKPaintStyle.Fill;
+        }
+        else
+        {
+          _font.Size = (float)button.Height * 0.48f;
+          canvas.DrawText(button.Heading, rectangle.MidX, rectangle.Top + rectangle.Height * 0.52f,
+            SKTextAlign.Center, _font, _buttonPaint);
+        }
+
         _font.Size = (float)button.Height * 0.18f;
         canvas.DrawText(button.Label, rectangle.MidX, rectangle.Bottom - rectangle.Height * 0.14f,
           SKTextAlign.Center, _font, _buttonPaint);
