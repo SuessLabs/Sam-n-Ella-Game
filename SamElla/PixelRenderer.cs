@@ -710,6 +710,10 @@ internal sealed class PixelRenderer
       PixelFont.Draw(Frame, "(EXPERIMENTAL)", 52, 183, screen.SelectedIndex == 4 ? Gold : White);
       DrawTitleText("UPDATE SETTING APPLIES NEXT LAUNCH", 197, White, 1);
     }
+    else if (screen.Mobile is not null)
+    {
+      DrawAudioToggle("LARGE CONTROLS (1.5X)", 169, screen.Mobile.LargeControls, screen.SelectedIndex == 4);
+    }
 
     Frame.FillTranslucent(144, 207, 96, 17, Ink, 180);
     if (screen.SelectedIndex == screen.BackIndex)

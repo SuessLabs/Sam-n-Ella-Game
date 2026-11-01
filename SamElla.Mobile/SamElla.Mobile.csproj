@@ -23,6 +23,8 @@
       ForegroundScale="0.65" Color="#17263F" Resize="true" BaseSize="128,128" />
     <MauiSplashScreen Include="../Docs/Sam-and-Ella.png" Link="Resources/Splash/sam_ella.png"
       Color="#17263F" Resize="true" BaseSize="128,128" />
+    <MauiImage Include="../Docs/GooglePlay/images/feature-graphic-1024x500.png"
+      Link="Resources/Images/feature_graphic.png" Resize="false" />
     <MauiAsset Include="../SamElla/Assets/**/*.sprite;../SamElla/Assets/**/*.txt"
       Exclude="../SamElla/Assets/AppIcon/**;../SamElla/Assets/Previews/**"
       LogicalName="Game/Assets/%(RecursiveDir)%(Filename)%(Extension)" />
