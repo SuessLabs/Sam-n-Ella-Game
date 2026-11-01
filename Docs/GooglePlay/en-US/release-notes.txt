@@ -1,0 +1,3 @@
+Android testing release of Sam n' Ella.
+Explore pixel-art levels, fight bosses, and race the clock in Speed Runs.
+Includes on-screen controls, local high scores, and adjustable music and sound effects.

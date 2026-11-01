@@ -1,0 +1,32 @@
+DRAFT - replace all placeholders and verify against the final release before publishing.
+
+Privacy Policy for Sam n' Ella
+Effective date: [EFFECTIVE_DATE]
+Publisher: [PUBLISHER_NAME]
+Contact: [SUPPORT_EMAIL]
+
+Sam n' Ella is an offline single-player game. The current Android game does not require a game account and does not include advertising, in-app purchases, analytics, or a developer-operated online leaderboard.
+
+Data stored on your device
+The game stores settings, game records, leaderboard initials, scores, and the dates those scores were recorded in the application's private storage. These records are used to remember preferences and display local high scores. The game does not transmit them to the publisher or other players.
+
+Android backup
+The current Android manifest enables application backup. Depending on your device and system settings, Android may back up or transfer app data through its own services. These functions are controlled by Android and your backup provider, rather than a game-operated server. Review your device's backup settings and your provider's privacy information.
+
+Collection and sharing
+The current game does not send personal information to the publisher and does not sell personal information. It does not request access to your contacts, microphone, camera, or location for gameplay. Google Play and Android may process information independently under their own policies when you install, update, back up, or use apps.
+
+Support communications
+If you contact [SUPPORT_EMAIL], the publisher receives the email address and information you choose to send. That information is used to answer the request. [PUBLISHER: INSERT YOUR SUPPORT RETENTION PERIOD AND ANY EMAIL/SUPPORT PROVIDERS THAT APPLY.]
+
+Retention and deletion
+Local game data remains until it is cleared or removed. You can clear it through Android Settings > Apps > Sam n' Ella > Storage > Clear data. Uninstalling removes local app data, but separately retained system backups are controlled by your backup settings/provider. Clearing data removes local settings and scores.
+
+Audience
+[PUBLISHER: COMPLETE THE TARGET-AGE AND CHILDREN'S PRIVACY STATEMENT AFTER REVIEWING THE GAME'S GORE, LANGUAGE, ALCOHOL, SYRINGES, AND CRUDE HUMOR. DO NOT DECLARE THIS AN ALL-AGES GAME WITHOUT REVIEW.]
+
+Changes
+If the game's data practices change, this policy will be updated with a new effective date.
+
+Questions
+Contact [PUBLISHER_NAME] at [SUPPORT_EMAIL].

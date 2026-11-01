@@ -1,0 +1,25 @@
+DRAFT FOR PUBLISHER REVIEW - not a completed Play Console declaration.
+
+Review basis: current mobile host, shared game code, project package references, and Android source manifest. Recheck the final signed release, merged permissions, dependencies, and network behavior before submission.
+
+Current observations
+- No login or developer-hosted game backend was found in the mobile game.
+- No advertising, analytics, or billing integration was found in the reviewed app code/package references.
+- Leaderboard initials, scores, timestamps, settings, and records are saved locally.
+- The desktop updater is excluded from SamElla.Core; the mobile host passes desktopUpdates: false.
+- Android application backup is enabled. Describe this in the privacy policy and review the final backup behavior.
+
+Proposed Play Console responses, conditional on release verification
+- Ads: No.
+- App access: All functionality available without credentials or membership.
+- Data collected by the game and transmitted off-device: No observed game-operated collection.
+- Data shared by the game: No observed game-operated sharing.
+- Accounts/account deletion: No in-game account creation. Do not invent a deletion URL for an account system that does not exist.
+- Local initials/scores: On-device processing only in the current implementation; distinguish this from transmission when answering the live form.
+- Encryption/deletion follow-up questions: Answer only the questions the live form presents; do not mark transport encryption as verified based on an offline code review.
+
+Before approving these answers
+Confirm there are no added crash-reporting, advertising, analytics, support, or billing SDKs in the release. Check any SDK data practices and current Google Play definitions, including backup and support communications. The publisher is responsible for approving the final answers.
+
+https://support.google.com/googleplay/android-developer/answer/10787469
+https://support.google.com/googleplay/android-developer/answer/10144311

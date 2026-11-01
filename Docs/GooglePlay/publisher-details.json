@@ -1,0 +1,16 @@
+{
+  "appName": "Sam n' Ella",
+  "packageId": "com.suesslabs.samella",
+  "publisherName": "[PUBLISHER_NAME]",
+  "supportEmail": "[SUPPORT_EMAIL]",
+  "websiteUrl": "[WEBSITE_URL_OR_LEAVE_EMPTY]",
+  "privacyPolicyUrl": "[PUBLIC_PRIVACY_POLICY_URL]",
+  "accountType": "[PERSONAL_OR_ORGANIZATION]",
+  "pricing": "[FREE_OR_PAID]",
+  "countries": "[DISTRIBUTION_COUNTRIES]",
+  "listingLocale": "en-US",
+  "categorySuggestion": "GAME_ACTION",
+  "requestedAudience": "All",
+  "playConsoleAgeGroups": "[PENDING_CONTENT_REVIEW]",
+  "contentRating": "[ASSIGNED_BY_RATING_QUESTIONNAIRE]"
+}
