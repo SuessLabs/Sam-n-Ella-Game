@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.IO;
 using System.Linq;
@@ -28,7 +31,7 @@ public sealed class EnemyQuotesTests : GameTestBase
     var game = Map("................................", "................................", "................................", "................................",
       "................................", "................................", "................................", "...S..........................G.", "################################");
     var enemy = new Enemy(10, 8 - (kind == EnemyKind.EmoBoss ? Enemy.EmoBossBodyHeight : Game.LargeBodyHeight), kind)
-      { Direction = 0, ProjectileAttackTicks = 100000 };
+    { Direction = 0, ProjectileAttackTicks = 100000 };
     game.Enemies.Add(enemy);
     foreach (string quote in ReadQuotes())
     {

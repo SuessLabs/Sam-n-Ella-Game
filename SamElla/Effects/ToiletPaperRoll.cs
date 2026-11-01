@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 namespace SamElla.Effects;
 
 public sealed class ToiletPaperRoll(double x, double y, int direction, int damage)

@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -208,7 +211,8 @@ public sealed class GameSoundTests : GameTestBase
       "####################");
 
     var enemy = new Enemy(game.X, 5 - (kind == EnemyKind.Zombie ? Game.LargeBodyHeight : Game.BodyHeight),
-      kind, new EnemySettings(0, health, 0)) { Direction = 0 };
+      kind, new EnemySettings(0, health, 0))
+    { Direction = 0 };
     game.Enemies.Add(enemy);
     var sounds = Listen(game);
     for (int tick = 0; tick < 60; tick++)

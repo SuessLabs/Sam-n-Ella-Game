@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.IO;
 using System.Linq;
@@ -116,7 +119,9 @@ public sealed class LeaderboardTests : GameTestBase
       Assert.IsTrue(board.TryAdd("ABC", score, Date));
 
     Assert.HasCount(10, board.Entries);
+
     CollectionAssert.AreEqual(new[] { 1000, 900, 800, 700, 600, 500, 400, 300, 200, 100 }, board.Entries.Select(entry => entry.Score).ToArray());
+
     Assert.IsFalse(board.TryAdd("XYZ", 100, Date.AddDays(1)));
     Assert.IsFalse(board.Qualifies(99));
     Assert.IsTrue(board.TryAdd("new", 900, Date.AddDays(1)));
@@ -138,6 +143,7 @@ public sealed class LeaderboardTests : GameTestBase
     settings.Leaderboard.TryAdd("XYZ", 5000, Date.AddHours(1));
     settings.Save(NextPath);
     var restored = GameSettings.Load(NextPath);
+
     Assert.AreEqual(35, restored.Audio.MusicVolume);
     Assert.AreEqual(5000, restored.Records.HighScore);
     Assert.HasCount(2, restored.Leaderboard.Entries);
@@ -161,11 +167,14 @@ public sealed class LeaderboardTests : GameTestBase
 
     var screen = new LeaderboardScreen(board);
     Assert.IsFalse(screen.TryOpenFor(WinGame()));
+
     screen.OpenViewer();
     Assert.AreEqual(LeaderboardContext.Title, screen.Context);
     Assert.IsFalse(screen.IsEnteringInitials);
+
     screen.HandleInput([0x41, 0x42, 0x43], true, Date);
     Assert.HasCount(10, board.Entries);
+
     screen.HandleInput([0x1B], true, Date);
     Assert.IsFalse(screen.IsActive);
   }
@@ -193,6 +202,7 @@ public sealed class LeaderboardTests : GameTestBase
     renderer.DrawLeaderboard(screen);
     Assert.AreEqual(0xFFFFD56Bu, renderer.Frame.Pixels[101 * PixelRenderer.Width + 130]);
     Assert.AreEqual(0xFF527787u, renderer.Frame.Pixels[101 * PixelRenderer.Width + 174]);
+
     string? preview = Environment.GetEnvironmentVariable("SAMELLA_INITIALS_PREVIEW");
     if (preview is not null)
       renderer.Frame.SavePng(preview);
@@ -214,10 +224,12 @@ public sealed class LeaderboardTests : GameTestBase
   {
     var settings = new GameSettings();
     Assert.IsTrue(settings.Leaderboard.TryAdd(initials, 100, Date));
+
     settings.Save(NextPath);
     var restored = GameSettings.Load(NextPath);
     Assert.HasCount(1, restored.Leaderboard.Entries);
     Assert.AreEqual(initials.ToUpperInvariant(), restored.Leaderboard.Entries[0].Initials);
+
     restored.Audio.MusicEnabled = false;
     restored.Save(NextPath);
     Assert.AreEqual(initials.ToUpperInvariant(), GameSettings.Load(NextPath).Leaderboard.Entries[0].Initials);
@@ -229,6 +241,7 @@ public sealed class LeaderboardTests : GameTestBase
     var title = new TitleScreen();
     Assert.AreEqual(MenuAction.Leaderboard, title.HandleInput(0, [0x28, 0x28, 0x0D], true));
     Assert.IsTrue(title.IsActive);
+
     var menu = new ScreenMenu();
     Assert.AreEqual(MenuAction.Primary, menu.HandleInput([0x28, 0x28, 0x0D], true));
   }
@@ -255,6 +268,7 @@ public sealed class LeaderboardTests : GameTestBase
     const string characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ";
     var screen = new LeaderboardScreen(new Leaderboard());
     screen.TryOpenFor(WinGame());
+
     for (int index = 1; index <= characters.Length; index++)
     {
       screen.HandleInput([0x26], true, Date);

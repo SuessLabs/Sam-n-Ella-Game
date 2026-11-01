@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 namespace SamElla.Effects;
 
 public sealed class GrowthHeart(double x, double y, int direction, int sourceX = -1, int sourceY = -1,

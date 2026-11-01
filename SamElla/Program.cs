@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System.Diagnostics;
 using SamElla;
 using SamElla.Audio;
@@ -37,7 +40,6 @@ try
       Directory.CreateDirectory(logs);
       File.AppendAllText(Path.Combine(logs, "updates.log"), $"{DateTimeOffset.UtcNow:u} {exception}\n");
     }
-
     catch (Exception logError) when (logError is IOException or UnauthorizedAccessException)
     {
       // An unavailable log folder must not prevent offline play.
@@ -91,7 +93,6 @@ try
 
   updates.TryScheduleApply(restart: false, args);
 }
-
 catch (Exception exception) when (exception is IOException or ArgumentException or InvalidOperationException
   or PlatformNotSupportedException or System.ComponentModel.Win32Exception)
 {

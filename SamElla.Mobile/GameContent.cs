@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 namespace SamElla.Mobile;
 
 internal static class GameContent
@@ -19,6 +22,7 @@ internal static class GameContent
       Directory.CreateDirectory(Path.GetDirectoryName(target)!);
       using var source = await FileSystem.OpenAppPackageFileAsync("Game/" + relative);
       using var destination = File.Create(target);
+
       await source.CopyToAsync(destination);
     }
 
