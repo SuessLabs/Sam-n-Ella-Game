@@ -7,4 +7,5 @@
   <key>UISupportedInterfaceOrientations~ipad</key><array><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
   <key>UIRequiresFullScreen</key><true/>
   <key>UILaunchStoryboardName</key><string>MauiSplash</string>
+  <key>XSAppIconAssets</key><string>Assets.xcassets/appicon.appiconset</string>
 </dict></plist>
