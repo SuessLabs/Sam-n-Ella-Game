@@ -38,7 +38,8 @@ internal sealed class GameSession : IDisposable
     this.audio = audio;
     mobileHost = !desktopUpdates;
     savedSettings = preferences ?? GameSettings.Load(settingsPath);
-    settings = new SettingsScreen(savedSettings.Audio, savedSettings.Updates, desktopUpdates);
+    settings = new SettingsScreen(savedSettings.Audio, savedSettings.Updates, desktopUpdates,
+      mobileHost ? savedSettings.Mobile : null);
     files = LevelSelectScreen.Discover(levelsPath);
     if (files.Length == 0)
       throw new InvalidDataException($"No .txt levels found in {levelsPath}");
@@ -63,6 +64,7 @@ internal sealed class GameSession : IDisposable
   public bool ExitRequested { get; private set; }
   public PixelBuffer Frame => renderer.Frame;
   public Game Game => game;
+  public bool LargeMobileControls => savedSettings.Mobile.LargeControls;
 
   public bool MenuControls => titleScreen.IsActive || settings.IsActive || leaderboard.IsActive
     || levelSelect is not null || game.Paused || game.IsDying || game.Won || levelStart.IsActive;

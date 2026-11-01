@@ -15,7 +15,7 @@ if ($expected -notmatch '^\d+\.\d+\.\d+\.\d+$' -or $build -notmatch '^[1-9]\d*$'
 function Read-BuildProperties
 {
   param([string]$Project, [string[]]$ExtraArguments = @())
-  $output = & dotnet msbuild (Join-Path $root $Project) -nologo '-getProperty:Version,FileVersion,AssemblyVersion,ApplicationDisplayVersion,ApplicationVersion' @ExtraArguments
+  $output = & dotnet msbuild (Join-Path $root $Project) -nologo '-getProperty:Version,PackageVersion,FileVersion,AssemblyVersion,ApplicationDisplayVersion,ApplicationVersion' @ExtraArguments
   if ($LASTEXITCODE -ne 0) { throw "Could not evaluate $Project" }
   return ($output -join "`n" | ConvertFrom-Json).Properties
 }
@@ -24,7 +24,8 @@ function Check-Version
 {
   param($Properties, [string]$Platform, [string]$DisplayVersion)
   $packageVersion = if ($Platform -eq 'iOS') { $DisplayVersion } else { $expected }
-  if ($Properties.Version -ne $packageVersion -or $Properties.FileVersion -ne $expected -or $Properties.AssemblyVersion -ne $expected)
+  if ($Properties.Version -ne $packageVersion -or $Properties.PackageVersion -ne $expected -or
+    $Properties.FileVersion -ne $expected -or $Properties.AssemblyVersion -ne $expected)
   {
     throw "$Platform assemblies do not match $expected."
   }

@@ -6,6 +6,17 @@ settings, records, leaderboard, and the frame-driven `GameSession`.
 The original source remains under `SamElla/`; the core project compiles the
 portable files, and the desktop project compiles only its Windows host and updater.
 
+Mobile Settings includes **Large Controls (1.5x)**. It enlarges all eight touch
+targets immediately, saves the choice across launches, and defaults to off.
+Start/Select stay near the bottom middle, with spacing adjusted to prevent
+overlap on narrow screens. Changing the size requires held fingers to lift before
+they can activate the resized controls.
+
+While game content and audio load, the mobile page displays
+`Docs/GooglePlay/images/feature-graphic-1024x500.png`, stretched to fill its
+available screen area. It is bundled as `feature_graphic.png`, so loading artwork
+works offline. The platform launch splash still uses the app badge.
+
 `SamElla.slnx` remains the desktop/test solution and needs no mobile workloads.
 `SamElla.Mobile.slnx` contains the mobile host and core.
 

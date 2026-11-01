@@ -117,6 +117,74 @@ public sealed class MobileHostTests : GameTestBase
   }
 
   [TestMethod]
+  [DataRow(1920, 1080, 3.0)]
+  [DataRow(2400, 1080, 3.0)]
+  [DataRow(1280, 800, 2.0)]
+  [DataRow(960, 540, 3.0)]
+  [DataRow(640, 360, 1.0)]
+  [DataRow(600, 300, 2.0)]
+  [DataRow(320, 240, 1.0)]
+  [DataRow(1968, 2184, 2.625)]
+  public void LargeControlsGrowEveryTouchTargetWithoutOverlapOrCropping(int width, int height, double density)
+  {
+    foreach (bool menu in new[] { false, true })
+    {
+      var standard = new MobileLayout(width, height, density, menu);
+      var large = new MobileLayout(width, height, density, menu, largeControls: true);
+      Assert.AreEqual(standard.Viewport, large.Viewport);
+      for (int index = 0; index < large.Buttons.Count; index++)
+      {
+        var button = large.Buttons[index];
+        Assert.AreEqual(standard.Buttons[index].Width * 1.5, button.Width, 0.00001);
+        Assert.AreEqual(standard.Buttons[index].Height * 1.5, button.Height, 0.00001);
+        Assert.IsTrue(button.X >= 0 && button.Y >= 0);
+        Assert.IsTrue(button.X + button.Width <= width && button.Y + button.Height <= height);
+        Assert.AreEqual(button.Key, large.KeyAt(button.X + button.Width / 2, button.Y + button.Height / 2));
+        foreach (var other in large.Buttons.Skip(index + 1))
+        {
+          Assert.IsFalse(button.X < other.X + other.Width && button.X + button.Width > other.X
+            && button.Y < other.Y + other.Height && button.Y + button.Height > other.Y,
+            $"{button.Label} overlaps {other.Label} at {width}x{height}.");
+        }
+      }
+    }
+  }
+
+  [TestMethod]
+  public void MobileControlSizeCanBeToggledSavedAndRestoredWithoutChangingOtherSettings()
+  {
+    var preferences = new GameSettings();
+    var screen = new SettingsScreen(preferences.Audio, updatesSupported: false, mobile: preferences.Mobile);
+    screen.Open();
+    screen.HandleInput([0x28, 0x28, 0x28, 0x28, 0x0D], true);
+    Assert.IsTrue(preferences.Mobile.LargeControls);
+    Assert.IsFalse(preferences.Updates.IncludePrereleases);
+    Assert.AreEqual(30, preferences.Audio.MusicVolume);
+    screen.HandleInput([0x28, 0x0D], true);
+    Assert.IsFalse(screen.IsActive);
+    preferences.Save(NextPath);
+    var restored = GameSettings.Load(NextPath);
+    Assert.IsTrue(restored.Mobile.LargeControls);
+    screen = new SettingsScreen(restored.Audio, updatesSupported: false, mobile: restored.Mobile);
+    screen.Open();
+    screen.HandleInput([0x28, 0x28, 0x28, 0x28, 0x25], true);
+    Assert.IsFalse(restored.Mobile.LargeControls);
+    restored.Save(NextPath);
+    Assert.IsFalse(GameSettings.Load(NextPath).Mobile.LargeControls);
+  }
+
+  [TestMethod]
+  [DataRow("")]
+  [DataRow("MusicVolume=30")]
+  [DataRow("Mobile.LargeControls=invalid")]
+  public void MissingOrInvalidMobilePreferencesKeepStandardControls(string contents)
+  {
+    Assert.IsFalse(GameSettings.Load(NextPath).Mobile.LargeControls);
+    File.WriteAllText(NextPath, contents);
+    Assert.IsFalse(GameSettings.Load(NextPath).Mobile.LargeControls);
+  }
+
+  [TestMethod]
   public void FullHdPhoneUsesFullHeightWithFractionalScaling()
   {
     var layout = new MobileLayout(1920, 1080, 3, menu: false);

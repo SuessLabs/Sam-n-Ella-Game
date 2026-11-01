@@ -21,6 +21,15 @@ internal sealed class GamePage : ContentPage, IDisposable
   private readonly SKFont _font = new();
   private readonly SKPaint _imagePaint = new() { IsAntialias = false };
   private readonly TouchInput _input = new();
+  private readonly Image _loadingImage = new()
+  {
+    Source = "feature_graphic.png",
+    Aspect = Aspect.Fill,
+    HorizontalOptions = LayoutOptions.Fill,
+    VerticalOptions = LayoutOptions.Fill,
+    InputTransparent = true,
+  };
+
   private readonly int[] _pixels = new int[PixelRenderer.Width * PixelRenderer.Height];
   private readonly IDispatcherTimer _timer;
 
@@ -28,6 +37,7 @@ internal sealed class GamePage : ContentPage, IDisposable
   private MobileGameAudio? _audio;
   private bool _deathContinueReady;
   private bool _disposed;
+  private bool _largeControls;
   private MobileLayout? _layout;
   private bool _loading;
   private bool _menu = true;
@@ -39,7 +49,7 @@ internal sealed class GamePage : ContentPage, IDisposable
   {
     BackgroundColor = Colors.Black;
     SafeAreaEdges = SafeAreaEdges.All;
-    Content = _canvas;
+    Content = new Grid { Children = { _canvas, _loadingImage } };
     _canvas.PaintSurface += Paint;
     _canvas.Touch += Touch;
     _timer = Dispatcher.CreateTimer();
@@ -111,6 +121,8 @@ internal sealed class GamePage : ContentPage, IDisposable
 
       _session = new GameSession(Path.Combine(root, "Assets"), Path.Combine(root, "Levels"),
         Path.Combine(FileSystem.AppDataDirectory, "settings.txt"), _audio, desktopUpdates: false);
+      _largeControls = _session.LargeMobileControls;
+      _loadingImage.IsVisible = false;
       _previous = _clock.Elapsed.TotalSeconds;
 
       if (_active)
@@ -121,6 +133,7 @@ internal sealed class GamePage : ContentPage, IDisposable
     catch (Exception exception)
     {
       _message = "COULD NOT LOAD GAME";
+      _loadingImage.IsVisible = false;
       System.Diagnostics.Debug.WriteLine(exception);
       await DisplayAlertAsync("Sam n' Ella", exception.Message, "OK");
     }
@@ -175,7 +188,7 @@ internal sealed class GamePage : ContentPage, IDisposable
     }
 
     double density = DeviceDisplay.MainDisplayInfo.Density;
-    _layout = new MobileLayout(args.Info.Width, args.Info.Height, density, _menu, _session.StartEnabled);
+    _layout = new MobileLayout(args.Info.Width, args.Info.Height, density, _menu, _session.StartEnabled, _largeControls);
 
     var view = _layout.Viewport;
     Buffer.BlockCopy(_session.Frame.Pixels, 0, _pixels, 0, _pixels.Length * sizeof(int));
@@ -248,10 +261,12 @@ internal sealed class GamePage : ContentPage, IDisposable
     _previous = now;
     _input.PumpEvents();
 
-    if (_session.MenuControls != _menu || _session.DeathContinueReady != _deathContinueReady)
+    if (_session.MenuControls != _menu || _session.DeathContinueReady != _deathContinueReady
+      || _session.LargeMobileControls != _largeControls)
     {
       _menu = _session.MenuControls;
       _deathContinueReady = _session.DeathContinueReady;
+      _largeControls = _session.LargeMobileControls;
       _layout = null;
       _input.SuppressUntilRelease();
     }

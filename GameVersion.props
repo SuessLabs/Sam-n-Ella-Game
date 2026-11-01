@@ -3,6 +3,8 @@
     <FileVersion>0.8.0.124</FileVersion>
     <AssemblyVersion>0.8.0.124</AssemblyVersion>
     <Version>$(FileVersion)</Version>
+    <!-- iOS shortens Version to three parts; NuGet requires one package version across all targets. -->
+    <PackageVersion>$(FileVersion)</PackageVersion>
     <!-- Store build numbers must keep increasing even when the release prefix changes. -->
     <MobileBuildNumber>124</MobileBuildNumber>
     <ApplicationDisplayVersion Condition="'$(TargetFramework)' != '' and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">$(FileVersion)</ApplicationDisplayVersion>

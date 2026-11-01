@@ -2,20 +2,23 @@
 // See the LICENSE file in the project root for more information.
 
 using SamElla.Audio;
+using SamElla.Mobile;
 using SamElla.Updater;
 
 namespace SamElla.Screens;
 
-internal sealed class SettingsScreen(AudioSettings audio, UpdateSettings? updates = null, bool updatesSupported = true)
+internal sealed class SettingsScreen(AudioSettings audio, UpdateSettings? updates = null, bool updatesSupported = true,
+  MobileSettings? mobile = null)
 {
   private const int VolumeStep = 5;
   public AudioSettings Audio { get; } = audio;
   public int BackIndex => RowCount - 1;
   public bool IsActive { get; private set; }
+  public MobileSettings? Mobile { get; } = updatesSupported ? null : mobile;
   public int SelectedIndex { get; private set; }
   public UpdateSettings Updates { get; } = updates ?? new();
   public bool UpdatesSupported { get; } = updatesSupported;
-  private int RowCount => UpdatesSupported ? 6 : 5;
+  private int RowCount => UpdatesSupported || Mobile is not null ? 6 : 5;
 
   public void HandleInput(IReadOnlyList<int> keyPresses, bool windowActive)
   {
@@ -69,11 +72,16 @@ internal sealed class SettingsScreen(AudioSettings audio, UpdateSettings? update
             break;
           }
 
-          bool enabled = SelectedIndex == 4 ? Updates.IncludePrereleases
+          bool enabled = SelectedIndex == 4 ? Mobile?.LargeControls ?? Updates.IncludePrereleases
             : SelectedIndex == 0 ? Audio.MusicEnabled : Audio.SoundEffectsEnabled;
           enabled = code == 0x25 ? false : code == 0x27 ? true : !enabled;
           if (SelectedIndex == 4)
-            Updates.IncludePrereleases = enabled;
+          {
+            if (Mobile is not null)
+              Mobile.LargeControls = enabled;
+            else
+              Updates.IncludePrereleases = enabled;
+          }
           else if (SelectedIndex == 0)
             Audio.MusicEnabled = enabled;
           else
