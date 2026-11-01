@@ -18,12 +18,6 @@ internal sealed class AudioWorker : IDisposable
     _thread.Start();
   }
 
-  public void Enqueue(Action command)
-  {
-    if (!_disposed)
-      _commands.Add(command);
-  }
-
   public void Dispose()
   {
     if (_disposed)
@@ -33,6 +27,12 @@ internal sealed class AudioWorker : IDisposable
     _commands.CompleteAdding();
     _thread.Join();
     _commands.Dispose();
+  }
+
+  public void Enqueue(Action command)
+  {
+    if (!_disposed)
+      _commands.Add(command);
   }
 
   private void Run(Action update, Action cleanup)
@@ -46,15 +46,10 @@ internal sealed class AudioWorker : IDisposable
 
         update();
       }
-
     }
-
     finally
     {
       cleanup();
     }
-
   }
-
 }
-

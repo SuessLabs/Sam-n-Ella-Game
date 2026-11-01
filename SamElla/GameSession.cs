@@ -11,23 +11,23 @@ namespace SamElla;
 internal sealed class GameSession : IDisposable
 {
   private readonly string assetsPath;
-  private readonly string levelsPath;
-  private readonly string settingsPath;
   private readonly IGameAudio audio;
-  private readonly GameSettings savedSettings;
-  private readonly SettingsScreen settings;
-  private readonly PixelRenderer renderer;
-  private readonly bool mobileHost;
-  private readonly TitleScreen titleScreen = new();
-  private readonly PauseScreen pauseScreen = new();
   private readonly LeaderboardScreen leaderboard;
   private readonly LevelSelectCheat levelSelectCheat = new();
+  private readonly string levelsPath;
   private readonly LevelStartScreen levelStart;
-  private LevelSelectScreen? levelSelect;
-  private Level? presentedLevel;
+  private readonly bool mobileHost;
+  private readonly PauseScreen pauseScreen = new();
+  private readonly PixelRenderer renderer;
+  private readonly GameSettings savedSettings;
+  private readonly SettingsScreen settings;
+  private readonly string settingsPath;
+  private readonly TitleScreen titleScreen = new();
+  private double accumulator;
   private string[] files;
   private Game game;
-  private double accumulator;
+  private LevelSelectScreen? levelSelect;
+  private Level? presentedLevel;
 
   public GameSession(string assetsPath, string levelsPath, string settingsPath, IGameAudio audio,
     GameSettings? preferences = null, bool desktopUpdates = true)
@@ -55,19 +55,29 @@ internal sealed class GameSession : IDisposable
     renderer.DrawTitle(titleScreen);
   }
 
-  public PixelBuffer Frame => renderer.Frame;
-  public Game Game => game;
-  public bool ExitRequested { get; private set; }
-  public string UpdateStatus { get; set; } = string.Empty;
-  public Func<bool>? TryApplyUpdate { get; init; }
-  public bool MenuControls => titleScreen.IsActive || settings.IsActive || leaderboard.IsActive
-    || levelSelect is not null || game.Paused || game.IsDying || game.Won || levelStart.IsActive;
   public bool CanPause => !titleScreen.IsActive && !settings.IsActive && !leaderboard.IsActive
     && levelSelect is null && !levelStart.IsActive && ReferenceEquals(presentedLevel, game.Level)
     && !game.IsDying && !game.Won && game.Lives > 0;
+
   public bool DeathContinueReady => game.AwaitingRestart && !audio.IsDeathSoundPlaying;
+  public bool ExitRequested { get; private set; }
+  public PixelBuffer Frame => renderer.Frame;
+  public Game Game => game;
+
+  public bool MenuControls => titleScreen.IsActive || settings.IsActive || leaderboard.IsActive
+    || levelSelect is not null || game.Paused || game.IsDying || game.Won || levelStart.IsActive;
+
   public bool StartEnabled => CanPause || (DeathContinueReady && !leaderboard.IsActive)
     || (mobileHost && leaderboard.IsActive && leaderboard.IsEnteringInitials);
+
+  public Func<bool>? TryApplyUpdate { get; init; }
+  public string UpdateStatus { get; set; } = string.Empty;
+
+  public void Dispose()
+  {
+    savedSettings.Save(settingsPath);
+    audio.Stop();
+  }
 
   public void Suspend()
   {
@@ -78,24 +88,6 @@ internal sealed class GameSession : IDisposable
     audio.SetMusicPaused(true);
     audio.SetFlamethrowerActive(false);
     savedSettings.Save(settingsPath);
-  }
-
-  public void Dispose()
-  {
-    savedSettings.Save(settingsPath);
-    audio.Stop();
-  }
-
-  private Game CreateGame(bool cheat = false, PlayerCharacter character = PlayerCharacter.Sam, int startingLevelIndex = 0)
-  {
-    var created = new Game(files,
-      deathQuotesPath: Path.Combine(assetsPath, "death-quotes.txt"), creditsAssetsPath: assetsPath,
-      enemySettingsPath: Path.Combine(assetsPath, "enemies.txt"),
-      flamethrowerQuotesPath: Path.Combine(assetsPath, "flamethrower-quotes.txt"), konamiCheat: cheat,
-      gameOverQuotesPath: Path.Combine(assetsPath, "game-over-quotes.txt"), startingLevelIndex: startingLevelIndex)
-    { Character = character };
-    created.SoundRequested += audio.Play;
-    return created;
   }
 
   public void Tick(IGameWindow window, double elapsed)
@@ -138,7 +130,6 @@ internal sealed class GameSession : IDisposable
       else
       {
         renderer.DrawLeaderboard(leaderboard);
-
       }
 
       return; // Initials and confirmation keys never reach gameplay or cheats.
@@ -363,7 +354,18 @@ internal sealed class GameSession : IDisposable
     }
     else
       renderer.Draw(game, direction, elapsed, deathContinueReady: DeathContinueReady);
+  }
 
+  private Game CreateGame(bool cheat = false, PlayerCharacter character = PlayerCharacter.Sam, int startingLevelIndex = 0)
+  {
+    var created = new Game(files,
+      deathQuotesPath: Path.Combine(assetsPath, "death-quotes.txt"), creditsAssetsPath: assetsPath,
+      enemySettingsPath: Path.Combine(assetsPath, "enemies.txt"),
+      flamethrowerQuotesPath: Path.Combine(assetsPath, "flamethrower-quotes.txt"), konamiCheat: cheat,
+      gameOverQuotesPath: Path.Combine(assetsPath, "game-over-quotes.txt"), startingLevelIndex: startingLevelIndex)
+    { Character = character };
+    created.SoundRequested += audio.Play;
+    return created;
   }
 
   private bool TryOpenLeaderboard() => (!game.IsDying || DeathContinueReady) && leaderboard.TryOpenFor(game);

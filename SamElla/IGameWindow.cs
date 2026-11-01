@@ -21,15 +21,14 @@ internal interface IGameWindow : IDisposable
   bool Active { get; }
 
   bool AnyKeyPressed { get; }
-  IReadOnlyList<int> KeyPresses { get; }
-
   bool Closed { get; }
+  IReadOnlyList<int> KeyPresses { get; }
 
   bool Down(GameKey key);
 
-  bool Pressed(GameKey key);
-
   void Present(PixelBuffer frame);
+
+  bool Pressed(GameKey key);
 
   void PumpEvents();
 }

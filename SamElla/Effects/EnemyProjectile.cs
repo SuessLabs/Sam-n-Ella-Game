@@ -13,14 +13,13 @@ public enum EnemyProjectileKind
 
 public sealed class EnemyProjectile(Enemy owner, EnemyProjectileKind kind, double x, double y, double velocityX, double velocityY)
 {
-  public const double Width = 0.6;
   public const double Height = 0.25;
-
-  public Enemy Owner { get; } = owner;
+  public const double Width = 0.6;
+  public int AgeTicks { get; internal set; }
   public EnemyProjectileKind Kind { get; } = kind;
-  public double X { get; internal set; } = x;
-  public double Y { get; internal set; } = y;
+  public Enemy Owner { get; } = owner;
   public double VelocityX { get; } = velocityX;
   public double VelocityY { get; internal set; } = velocityY;
-  public int AgeTicks { get; internal set; }
+  public double X { get; internal set; } = x;
+  public double Y { get; internal set; } = y;
 }

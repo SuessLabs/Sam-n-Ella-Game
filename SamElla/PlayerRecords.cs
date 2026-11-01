@@ -7,46 +7,13 @@ namespace SamElla;
 
 internal sealed class PlayerRecords
 {
+  public TimeSpan? FastestCompletion { get; private set; }
+  public DateTimeOffset? FastestCompletionDate { get; private set; }
+  public TimeSpan? FastestGameOver { get; private set; }
+  public DateTimeOffset? FastestGameOverDate { get; private set; }
   public int HighScore { get; private set; }
 
   public DateTimeOffset? HighScoreDate { get; private set; }
-
-  public TimeSpan? FastestCompletion { get; private set; }
-
-  public DateTimeOffset? FastestCompletionDate { get; private set; }
-
-  public TimeSpan? FastestGameOver { get; private set; }
-
-  public DateTimeOffset? FastestGameOverDate { get; private set; }
-
-  public bool RecordProgress(int score, TimeSpan? completion, TimeSpan? gameOver, DateTimeOffset recordedAt)
-  {
-    bool changed = false;
-    if (score > HighScore)
-    {
-      HighScore = score;
-      HighScoreDate = recordedAt;
-      changed = true;
-    }
-
-    if (completion is { } finished && finished > TimeSpan.Zero &&
-      (FastestCompletion is null || finished < FastestCompletion))
-    {
-      FastestCompletion = finished;
-      FastestCompletionDate = recordedAt;
-      changed = true;
-    }
-
-    if (gameOver is { } died && died > TimeSpan.Zero &&
-      (FastestGameOver is null || died < FastestGameOver))
-    {
-      FastestGameOver = died;
-      FastestGameOverDate = recordedAt;
-      changed = true;
-    }
-
-    return changed;
-  }
 
   public static PlayerRecords Load(string path)
   {
@@ -61,7 +28,6 @@ internal sealed class PlayerRecords
           values[parts[0]] = parts[1];
       }
     }
-
     catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
     {
       return records;
@@ -90,6 +56,35 @@ internal sealed class PlayerRecords
     }
 
     return records;
+  }
+
+  public bool RecordProgress(int score, TimeSpan? completion, TimeSpan? gameOver, DateTimeOffset recordedAt)
+  {
+    bool changed = false;
+    if (score > HighScore)
+    {
+      HighScore = score;
+      HighScoreDate = recordedAt;
+      changed = true;
+    }
+
+    if (completion is { } finished && finished > TimeSpan.Zero &&
+      (FastestCompletion is null || finished < FastestCompletion))
+    {
+      FastestCompletion = finished;
+      FastestCompletionDate = recordedAt;
+      changed = true;
+    }
+
+    if (gameOver is { } died && died > TimeSpan.Zero &&
+      (FastestGameOver is null || died < FastestGameOver))
+    {
+      FastestGameOver = died;
+      FastestGameOverDate = recordedAt;
+      changed = true;
+    }
+
+    return changed;
   }
 
   public IEnumerable<string> ToLines()

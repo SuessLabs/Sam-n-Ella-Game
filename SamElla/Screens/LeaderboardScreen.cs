@@ -42,8 +42,6 @@ internal sealed class LeaderboardScreen(Leaderboard board)
   public int SelectedInitialIndex => Math.Min(_typingIndex, 2);
   public int SubmittedRank { get; private set; }
 
-  public bool HasHandled(Game game) => ReferenceEquals(_observedGame, game) && _outcomeHandled;
-
   // Return true only when a newly submitted entry needs to be saved.
   public bool HandleInput(IReadOnlyList<int> keyPresses, bool windowActive, DateTimeOffset recordedAt,
     bool allowCancel = false, bool mobileControls = false)
@@ -123,6 +121,8 @@ internal sealed class LeaderboardScreen(Leaderboard board)
 
     return false;
   }
+
+  public bool HasHandled(Game game) => ReferenceEquals(_observedGame, game) && _outcomeHandled;
 
   public void OpenViewer()
   {

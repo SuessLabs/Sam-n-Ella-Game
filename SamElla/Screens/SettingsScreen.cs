@@ -8,26 +8,14 @@ namespace SamElla.Screens;
 
 internal sealed class SettingsScreen(AudioSettings audio, UpdateSettings? updates = null, bool updatesSupported = true)
 {
-  private int RowCount => UpdatesSupported ? 6 : 5;
   private const int VolumeStep = 5;
-
   public AudioSettings Audio { get; } = audio;
-
-  public UpdateSettings Updates { get; } = updates ?? new();
-
-  public bool UpdatesSupported { get; } = updatesSupported;
-
   public int BackIndex => RowCount - 1;
-
   public bool IsActive { get; private set; }
-
   public int SelectedIndex { get; private set; }
-
-  public void Open()
-  {
-    SelectedIndex = 0;
-    IsActive = true;
-  }
+  public UpdateSettings Updates { get; } = updates ?? new();
+  public bool UpdatesSupported { get; } = updatesSupported;
+  private int RowCount => UpdatesSupported ? 6 : 5;
 
   public void HandleInput(IReadOnlyList<int> keyPresses, bool windowActive)
   {
@@ -94,5 +82,11 @@ internal sealed class SettingsScreen(AudioSettings audio, UpdateSettings? update
           break;
       }
     }
+  }
+
+  public void Open()
+  {
+    SelectedIndex = 0;
+    IsActive = true;
   }
 }

@@ -29,10 +29,8 @@ internal sealed class LevelSelectCheat
         requested = true;
         _recentKeys.Clear();
       }
-
     }
 
     return requested;
   }
-
 }

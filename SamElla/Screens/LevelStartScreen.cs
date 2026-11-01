@@ -22,15 +22,15 @@ internal sealed class LevelStartScreen
       _quotes = ["Try not to die this time"];
   }
 
+  public PlayerCharacter Character { get; private set; }
   public bool IsActive { get; private set; }
-  public double RemainingSeconds { get; private set; }
-  public int LevelNumber { get; private set; }
+  public bool IsLarge { get; private set; }
   public string LevelLabel { get; private set; } = string.Empty;
   public string LevelName { get; private set; } = string.Empty;
+  public int LevelNumber { get; private set; }
   public int Lives { get; private set; }
-  public PlayerCharacter Character { get; private set; }
-  public bool IsLarge { get; private set; }
   public string Quote { get; private set; } = string.Empty;
+  public double RemainingSeconds { get; private set; }
 
   public void Show(Game game)
   {
