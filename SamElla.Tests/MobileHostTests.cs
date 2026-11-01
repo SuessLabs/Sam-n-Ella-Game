@@ -269,6 +269,34 @@ public sealed class MobileHostTests : GameTestBase
       Assert.IsFalse(session.ExitRequested, "Mobile Back resumes the pause menu rather than exiting the game.");
       Assert.AreEqual(30, audio.MusicVolume);
       Assert.AreEqual(50, audio.EffectsVolume);
+      audio.IsDeathSoundPlaying = true;
+      for (int cell = 0; cell < session.Game.Level.Width; cell++)
+        session.Game.Level.Clear(cell, 8);
+
+      for (int tick = 0; tick < 180 && !session.Game.IsDying; tick++)
+        session.Tick(input, Game.Step);
+
+      Assert.IsTrue(session.Game.IsDying);
+      Assert.IsFalse(session.StartEnabled);
+      Press(session, input, 0x0D);
+      Assert.IsTrue(session.Game.IsDying);
+      for (int tick = 0; tick < Game.DeathDurationTicks + 5; tick++)
+        session.Tick(input, Game.Step);
+
+      Assert.IsTrue(session.Game.AwaitingRestart);
+      Assert.IsFalse(session.DeathContinueReady, "A delayed death sound must keep retry locked after the animation finishes.");
+      Press(session, input, GameKeyboard.PauseKey);
+      Press(session, input, 0x0D);
+      Assert.IsTrue(session.Game.IsDying);
+      audio.IsDeathSoundPlaying = false;
+      Assert.IsTrue(session.DeathContinueReady);
+      Assert.IsTrue(session.StartEnabled);
+      Press(session, input, 0x1B);
+      Press(session, input, 0x28);
+      Assert.IsTrue(session.Game.IsDying);
+      Press(session, input, GameKeyboard.PauseKey);
+      Assert.IsFalse(session.Game.IsDying);
+      Assert.AreEqual(2, session.Game.Lives);
     }
 
     finally
@@ -299,6 +327,61 @@ public sealed class MobileHostTests : GameTestBase
   }
 
   [TestMethod]
+  [DataRow(false)]
+  [DataRow(true)]
+  public void InitialsUseJumpToAdvanceOrStartToSubmitThroughTheMobileSession(bool useStart)
+  {
+    Map("....................", "....................", ".S.G................", "####################");
+    string directory = Path.Combine(Path.GetTempPath(), "samella-initials-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(directory);
+    string level = Path.Combine(directory, "01-01-test.txt");
+    File.Copy(LevelPath, level);
+    try
+    {
+      using var audio = new FakeAudio();
+      using var input = new TouchInput();
+      var preferences = new GameSettings();
+      using var session = new GameSession(Path.Combine(AppContext.BaseDirectory, "Assets"), directory, NextPath,
+        audio, preferences, desktopUpdates: false);
+      Assert.IsFalse(session.StartEnabled);
+      Press(session, input, 0x0D);
+      Press(session, input, 0x0D);
+      input.SetPointer(1, 0x27);
+      for (int tick = 0; tick < 120 && !session.Game.Won; tick++)
+      {
+        session.Tick(input, Game.Step);
+        input.PumpEvents();
+      }
+
+      input.Clear();
+      Assert.IsTrue(session.Game.Won);
+      Assert.IsTrue(session.StartEnabled, "Start must be enabled while entering initials.");
+      var layout = new MobileLayout(1920, 1080, 3, menu: true, canPause: session.StartEnabled);
+      Assert.AreEqual((int?)GameKeyboard.PauseKey, layout.Buttons.Single(button => button.Label == "START").Key);
+      if (useStart)
+        Press(session, input, GameKeyboard.PauseKey);
+      else
+      {
+        Press(session, input, 0x0D);
+        Assert.IsEmpty(preferences.Leaderboard.Entries);
+        Press(session, input, 0x0D);
+        Assert.IsEmpty(preferences.Leaderboard.Entries);
+        Press(session, input, 0x0D);
+      }
+
+      Assert.AreEqual("AAA", preferences.Leaderboard.Entries.Single().Initials);
+      Assert.HasCount(1, GameSettings.Load(NextPath).Leaderboard.Entries);
+      Assert.IsFalse(session.StartEnabled, "Start is no longer a confirmation control after initials are submitted.");
+    }
+
+    finally
+    {
+      File.Delete(level);
+      Directory.Delete(directory);
+    }
+  }
+
+  [TestMethod]
   public void CoreAssemblyHasNoWindowsOrVelopackDependencies()
   {
     string[] names = typeof(Game).Assembly.GetReferencedAssemblies().Select(assembly => assembly.Name!).ToArray();
@@ -315,6 +398,7 @@ public sealed class MobileHostTests : GameTestBase
 
   private sealed class FakeAudio : IGameAudio
   {
+    public bool IsDeathSoundPlaying { get; set; }
     public bool Paused { get; private set; }
     public int MusicVolume { get; private set; }
     public int EffectsVolume { get; private set; }

@@ -11,6 +11,50 @@ namespace SamElla.Audio;
 [SupportedOSPlatform("windows")]
 internal sealed unsafe class WindowsGameAudio : IGameAudio
 {
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutClose(nint device);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutOpen(out nint device, uint deviceId, ref WaveFormat format,
+    nuint callback, nuint instance, uint flags);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutPause(nint device);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutPrepareHeader(nint device, WaveHeader* header, uint size);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutReset(nint device);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutRestart(nint device);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutUnprepareHeader(nint device, WaveHeader* header, uint size);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutWrite(nint device, WaveHeader* header, uint size);
+
+  [StructLayout(LayoutKind.Sequential, Pack = 2)]
+  private struct WaveFormat
+  {
+    public ushort FormatTag, Channels;
+    public uint SamplesPerSecond, AverageBytesPerSecond;
+    public ushort BlockAlign, BitsPerSample, ExtraSize;
+  }
+
+  [StructLayout(LayoutKind.Sequential)]
+  private struct WaveHeader
+  {
+    public nint Data;
+    public uint Length, BytesRecorded;
+    public nuint User;
+    public uint Flags, Loops;
+    public nint Next;
+    public nuint Reserved;
+  }
+
   private readonly MusicPauseState _musicPause = new();
 
   private readonly Dictionary<GameMusic, short[]> _musicSamples = Enum.GetValues<GameMusic>()
@@ -24,6 +68,8 @@ internal sealed unsafe class WindowsGameAudio : IGameAudio
   private readonly AudioWorker _worker;
 
   private bool _disposed;
+  private volatile bool _deathSoundPending;
+  private volatile Voice? _deathVoice;
 
   private bool _effectsEnabled = true;
 
@@ -58,6 +104,8 @@ internal sealed unsafe class WindowsGameAudio : IGameAudio
     _worker = new AudioWorker(UpdateCore, StopCore);
   }
 
+  public bool IsDeathSoundPlaying => _deathSoundPending || _deathVoice is not null;
+
   public void Dispose()
   {
     _worker.Dispose();
@@ -67,9 +115,24 @@ internal sealed unsafe class WindowsGameAudio : IGameAudio
   public void Play(GameSound sound)
   {
     if (sound == GameSound.Died)
+    {
+      _deathSoundPending = true;
       ResetQueuedState();
+    }
 
-    _worker.Enqueue(() => PlayCore(sound));
+    _worker.Enqueue(() =>
+    {
+      try
+      {
+        PlayCore(sound);
+      }
+
+      finally
+      {
+        if (sound == GameSound.Died)
+          _deathSoundPending = false;
+      }
+    });
   }
 
   public void SetEnabled(bool musicEnabled, bool effectsEnabled)
@@ -126,31 +189,6 @@ internal sealed unsafe class WindowsGameAudio : IGameAudio
     ResetQueuedState();
     _worker.Enqueue(StopCore);
   }
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutClose(nint device);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutOpen(out nint device, uint deviceId, ref WaveFormat format,
-    nuint callback, nuint instance, uint flags);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutPause(nint device);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutPrepareHeader(nint device, WaveHeader* header, uint size);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutReset(nint device);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutRestart(nint device);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutUnprepareHeader(nint device, WaveHeader* header, uint size);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutWrite(nint device, WaveHeader* header, uint size);
 
   private void ApplyMusicPause()
   {
@@ -209,6 +247,8 @@ internal sealed unsafe class WindowsGameAudio : IGameAudio
     if (voice is not null)
     {
       _voices.Add(voice);
+      if (sound == GameSound.Died)
+        _deathVoice = voice;
       if (notification)
         _musicPause.StartNotification(voice);
     }
@@ -232,6 +272,7 @@ internal sealed unsafe class WindowsGameAudio : IGameAudio
         voice.Dispose();
 
       _voices.Clear();
+      _deathVoice = null;
       _musicPause.ClearNotifications();
       _flamethrower?.Dispose();
       _flamethrower = null;
@@ -298,6 +339,7 @@ internal sealed unsafe class WindowsGameAudio : IGameAudio
     foreach (var voice in _voices)
       voice.Dispose();
     _voices.Clear();
+    _deathVoice = null;
     _musicPause.ClearNotifications();
   }
 
@@ -318,31 +360,15 @@ internal sealed unsafe class WindowsGameAudio : IGameAudio
       if (!_voices[i].Completed)
         continue;
 
+      if (ReferenceEquals(_deathVoice, _voices[i]))
+        _deathVoice = null;
+
       bool notificationFinished = _musicPause.CompleteNotification(_voices[i]);
       _voices[i].Dispose();
       _voices.RemoveAt(i);
       if (notificationFinished)
         ApplyMusicPause();
     }
-  }
-
-  [StructLayout(LayoutKind.Sequential, Pack = 2)]
-  private struct WaveFormat
-  {
-    public ushort FormatTag, Channels;
-    public uint SamplesPerSecond, AverageBytesPerSecond;
-    public ushort BlockAlign, BitsPerSample, ExtraSize;
-  }
-
-  [StructLayout(LayoutKind.Sequential)]
-  private struct WaveHeader
-  {
-    public nint Data;
-    public uint Length, BytesRecorded;
-    public nuint User;
-    public uint Flags, Loops;
-    public nint Next;
-    public nuint Reserved;
   }
 
   private sealed class Voice : IDisposable

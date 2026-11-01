@@ -18,31 +18,53 @@ internal sealed class MobileGameAudio : IGameAudio
   private readonly MusicPauseState _pause = new();
   private IAudioPlayer? _music, _flame;
   private GameMusic _track;
+  private volatile bool _deathSoundPending;
+  private volatile IAudioPlayer? _deathVoice;
   private bool _effectsEnabled = true, _flameRequested, _suspended, _musicStarted, _musicWasPaused;
   private int _musicVolume = 30, _effectsVolume = 50;
 
   public MobileGameAudio() => _worker = new AudioWorker(() => RunAudio(Update), () => RunAudio(StopCore));
 
-  public void Play(GameSound sound) => Queue(() =>
+  public bool IsDeathSoundPlaying => _deathSoundPending || _deathVoice is not null;
+
+  public void Play(GameSound sound)
   {
     if (sound == GameSound.Died)
-      StopCore();
+      _deathSoundPending = true;
 
-    if (!_effectsEnabled || _suspended || _voices.Count >= 8)
-      return;
+    Queue(() =>
+    {
+      try
+      {
+        if (sound == GameSound.Died)
+          StopCore();
 
-    var player = Create(_effects[sound], false, _effectsVolume);
-    if (player is null)
-      return;
+        if (!_effectsEnabled || _suspended || _voices.Count >= 8)
+          return;
 
-    bool notification = sound == GameSound.PowerUp;
-    _voices.Add((player, notification));
-    if (notification)
-      _pause.StartNotification(player);
+        var player = Create(_effects[sound], false, _effectsVolume);
+        if (player is null)
+          return;
 
-    UpdateMusicPause();
-    player.Play();
-  });
+        bool notification = sound == GameSound.PowerUp;
+        _voices.Add((player, notification));
+        if (notification)
+          _pause.StartNotification(player);
+
+        UpdateMusicPause();
+        if (sound == GameSound.Died)
+          _deathVoice = player;
+
+        player.Play();
+      }
+
+      finally
+      {
+        if (sound == GameSound.Died)
+          _deathSoundPending = false;
+      }
+    });
+  }
 
   public void SetMusic(GameMusic music) => Queue(() =>
   {
@@ -133,6 +155,9 @@ internal sealed class MobileGameAudio : IGameAudio
         continue;
 
       _pause.CompleteNotification(voice.Player);
+      if (ReferenceEquals(_deathVoice, voice.Player))
+        _deathVoice = null;
+
       voice.Player.Dispose();
       _voices.RemoveAt(i);
       UpdateMusicPause();
@@ -180,6 +205,7 @@ internal sealed class MobileGameAudio : IGameAudio
       voice.Player.Dispose();
 
     _voices.Clear();
+    _deathVoice = null;
     _pause.ClearNotifications();
   }
 

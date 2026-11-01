@@ -42,8 +42,11 @@ internal sealed class LeaderboardScreen(Leaderboard board)
   public int SelectedInitialIndex => Math.Min(_typingIndex, 2);
   public int SubmittedRank { get; private set; }
 
+  public bool HasHandled(Game game) => ReferenceEquals(_observedGame, game) && _outcomeHandled;
+
   // Return true only when a newly submitted entry needs to be saved.
-  public bool HandleInput(IReadOnlyList<int> keyPresses, bool windowActive, DateTimeOffset recordedAt, bool allowCancel = false)
+  public bool HandleInput(IReadOnlyList<int> keyPresses, bool windowActive, DateTimeOffset recordedAt,
+    bool allowCancel = false, bool mobileControls = false)
   {
     if (!IsActive || !windowActive)
       return false;
@@ -84,8 +87,14 @@ internal sealed class LeaderboardScreen(Leaderboard board)
         _typingIndex = Math.Max(0, _typingIndex - 1);
         SetInitial(' ');
       }
-      else if (code == VK_RETURN)
+      else if (code == VK_RETURN || (mobileControls && code == GameKeyboard.PauseKey))
       {
+        if (mobileControls && code == VK_RETURN && SelectedInitialIndex < 2)
+        {
+          _typingIndex = SelectedInitialIndex + 1;
+          continue;
+        }
+
         int rank = Board.RankFor(Score);
         if (Board.TryAdd(Initials, Score, recordedAt))
         {

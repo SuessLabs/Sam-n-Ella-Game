@@ -5,6 +5,8 @@ namespace SamElla.Audio;
 
 internal interface IGameAudio : IDisposable
 {
+  bool IsDeathSoundPlaying { get; }
+
   void Play(GameSound sound);
 
   void SetMusic(GameMusic music);

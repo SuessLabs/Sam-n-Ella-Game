@@ -65,6 +65,9 @@ internal sealed class GameSession : IDisposable
   public bool CanPause => !titleScreen.IsActive && !settings.IsActive && !leaderboard.IsActive
     && levelSelect is null && !levelStart.IsActive && ReferenceEquals(presentedLevel, game.Level)
     && !game.IsDying && !game.Won && game.Lives > 0;
+  public bool DeathContinueReady => game.AwaitingRestart && !audio.IsDeathSoundPlaying;
+  public bool StartEnabled => CanPause || (DeathContinueReady && !leaderboard.IsActive)
+    || (mobileHost && leaderboard.IsActive && leaderboard.IsEnteringInitials);
 
   public void Suspend()
   {
@@ -119,16 +122,17 @@ internal sealed class GameSession : IDisposable
       return;
     }
 
-    bool openedLeaderboard = !titleScreen.IsActive && levelSelect is null && leaderboard.TryOpenFor(game);
+    bool openedLeaderboard = !titleScreen.IsActive && levelSelect is null && TryOpenLeaderboard();
     if (leaderboard.IsActive)
     {
-      if (!openedLeaderboard && leaderboard.HandleInput(window.KeyPresses, window.Active, DateTimeOffset.Now, allowCancel: mobileHost))
+      if (!openedLeaderboard && leaderboard.HandleInput(window.KeyPresses, window.Active, DateTimeOffset.Now,
+        allowCancel: mobileHost, mobileControls: mobileHost))
         savedSettings.Save(settingsPath);
 
       accumulator = 0;
       if (!leaderboard.IsActive)
       {
-        if (leaderboard.Context == LeaderboardContext.GameOver)
+        if (leaderboard.Context == LeaderboardContext.GameOver && (!mobileHost || window.KeyPresses.Contains(0x0D)))
           game.ContinueAfterDeath();
       }
       else
@@ -282,8 +286,9 @@ internal sealed class GameSession : IDisposable
     {
       game.Paused = false;
       // Qualifying runs must reach the initials prompt before Enter can restart.
-      bool waitingForLeaderboard = game.Lives == 0 && savedSettings.Leaderboard.Qualifies(game.Score);
-      if (!waitingForLeaderboard && DeathScreen.HandleInput(game, window.KeyPresses, window.Active))
+      bool waitingForLeaderboard = game.Lives == 0 && savedSettings.Leaderboard.Qualifies(game.Score) && !leaderboard.HasHandled(game);
+      if (!waitingForLeaderboard && DeathScreen.HandleInput(game, window.KeyPresses, window.Active,
+        mobileControls: mobileHost, deathSoundPlaying: audio.IsDeathSoundPlaying))
         accumulator = 0;
     }
     else
@@ -338,7 +343,7 @@ internal sealed class GameSession : IDisposable
         savedSettings.Save(settingsPath);
 
       accumulator -= Game.Step;
-      if (leaderboard.TryOpenFor(game))
+      if (TryOpenLeaderboard())
       {
         accumulator = 0;
         break; // No credit-scrolling ticks before initials have been entered.
@@ -351,13 +356,15 @@ internal sealed class GameSession : IDisposable
       }
     }
 
-    if (leaderboard.IsActive || leaderboard.TryOpenFor(game))
+    if (leaderboard.IsActive || TryOpenLeaderboard())
     {
       accumulator = 0;
       renderer.DrawLeaderboard(leaderboard);
     }
     else
-      renderer.Draw(game, direction, elapsed);
+      renderer.Draw(game, direction, elapsed, deathContinueReady: DeathContinueReady);
 
   }
+
+  private bool TryOpenLeaderboard() => (!game.IsDying || DeathContinueReady) && leaderboard.TryOpenFor(game);
 }
