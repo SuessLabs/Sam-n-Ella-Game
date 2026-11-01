@@ -66,7 +66,8 @@ internal sealed class GameSession : IDisposable
     && levelSelect is null && !levelStart.IsActive && ReferenceEquals(presentedLevel, game.Level)
     && !game.IsDying && !game.Won && game.Lives > 0;
   public bool DeathContinueReady => game.AwaitingRestart && !audio.IsDeathSoundPlaying;
-  public bool StartEnabled => CanPause || (DeathContinueReady && !leaderboard.IsActive);
+  public bool StartEnabled => CanPause || (DeathContinueReady && !leaderboard.IsActive)
+    || (mobileHost && leaderboard.IsActive && leaderboard.IsEnteringInitials);
 
   public void Suspend()
   {
@@ -124,7 +125,8 @@ internal sealed class GameSession : IDisposable
     bool openedLeaderboard = !titleScreen.IsActive && levelSelect is null && TryOpenLeaderboard();
     if (leaderboard.IsActive)
     {
-      if (!openedLeaderboard && leaderboard.HandleInput(window.KeyPresses, window.Active, DateTimeOffset.Now, allowCancel: mobileHost))
+      if (!openedLeaderboard && leaderboard.HandleInput(window.KeyPresses, window.Active, DateTimeOffset.Now,
+        allowCancel: mobileHost, mobileControls: mobileHost))
         savedSettings.Save(settingsPath);
 
       accumulator = 0;

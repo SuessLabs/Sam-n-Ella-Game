@@ -356,7 +356,12 @@ internal sealed class PixelRenderer
       DrawTitleText("A-Z / 0-9 / SPACE", 163, Gold, 2);
       DrawTitleText("UP/DOWN: CHARACTER", 184, White, 1);
       DrawTitleText("LEFT/RIGHT: POSITION", 195, White, 1);
-      DrawTitleText(_touchControls ? "JUMP ACCEPT  ATTACK CANCEL" : "ENTER: ACCEPT", 211, Gold, 1);
+      string accept = !_touchControls ? "ENTER: ACCEPT" : screen.SelectedInitialIndex < 2
+        ? "JUMP: NEXT  START: ACCEPT" : "JUMP / START: ACCEPT";
+      DrawTitleText(accept, 211, Gold, 1);
+      if (_touchControls)
+        DrawTitleText("ATTACK: CANCEL", 225, White, 1);
+
       return;
     }
 

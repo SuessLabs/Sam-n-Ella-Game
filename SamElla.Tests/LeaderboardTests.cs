@@ -31,6 +31,44 @@ public sealed class LeaderboardTests : GameTestBase
   }
 
   [TestMethod]
+  public void MobileJumpAdvancesInitialSlotsAndAcceptsOnlyAtTheLastSlot()
+  {
+    var screen = new LeaderboardScreen(new Leaderboard());
+    screen.TryOpenFor(WinGame());
+    Assert.IsFalse(screen.HandleInput([0x26, 0x0D], true, Date, mobileControls: true));
+    Assert.AreEqual("BAA", screen.Initials);
+    Assert.AreEqual(1, screen.SelectedInitialIndex);
+    Assert.IsEmpty(screen.Board.Entries);
+    Assert.IsFalse(screen.HandleInput([0x26, 0x0D], true, Date, mobileControls: true));
+    Assert.AreEqual("BBA", screen.Initials);
+    Assert.AreEqual(2, screen.SelectedInitialIndex);
+    Assert.IsEmpty(screen.Board.Entries);
+    Assert.IsTrue(screen.HandleInput([0x26, 0x0D, 0x0D], true, Date, mobileControls: true));
+    Assert.AreEqual("BBB", screen.Board.Entries.Single().Initials);
+    Assert.IsFalse(screen.IsEnteringInitials);
+    Assert.IsTrue(screen.IsActive, "Submitting must not also dismiss the score table.");
+  }
+
+  [TestMethod]
+  [DataRow(0)]
+  [DataRow(1)]
+  [DataRow(2)]
+  public void MobileStartAcceptsInitialsFromAnySlotWithoutAdvancing(int slot)
+  {
+    var screen = new LeaderboardScreen(new Leaderboard());
+    screen.TryOpenFor(WinGame());
+    for (int index = 0; index < slot; index++)
+      screen.HandleInput([0x0D], true, Date, mobileControls: true);
+
+    Assert.AreEqual(slot, screen.SelectedInitialIndex);
+    Assert.IsFalse(screen.HandleInput([GameKeyboard.PauseKey], false, Date, mobileControls: true));
+    Assert.IsTrue(screen.HandleInput([GameKeyboard.PauseKey, 0x0D], true, Date, mobileControls: true));
+    Assert.AreEqual("AAA", screen.Board.Entries.Single().Initials);
+    Assert.IsTrue(screen.IsActive);
+    Assert.IsFalse(screen.IsEnteringInitials);
+  }
+
+  [TestMethod]
   public void ArrowsEditSelectedPositionAndEnterAcceptsWithoutClosingBoard()
   {
     var screen = new LeaderboardScreen(new Leaderboard());
