@@ -11,6 +11,8 @@ namespace SamElla.Mobile;
 
 internal sealed class GamePage : ContentPage, IDisposable
 {
+  private static readonly SKPoint[] ArrowPoints = [new(-0.30f, -0.12f), new(0.05f, -0.12f), new(0.05f, -0.30f),
+    new(0.30f, 0), new(0.05f, 0.30f), new(0.05f, 0.12f), new(-0.30f, 0.12f)];
   private readonly SKCanvasView _canvas = new() { EnableTouchEvents = true };
   private readonly TouchInput _input = new();
   private readonly Stopwatch _clock = Stopwatch.StartNew();
@@ -121,7 +123,7 @@ internal sealed class GamePage : ContentPage, IDisposable
     {
       _menu = _session.MenuControls;
       _layout = null;
-      _input.Clear();
+      _input.SuppressUntilRelease();
     }
 
     if (_session.ExitRequested)
@@ -148,7 +150,7 @@ internal sealed class GamePage : ContentPage, IDisposable
     }
 
     double density = DeviceDisplay.MainDisplayInfo.Density;
-    _layout = new MobileLayout(args.Info.Width, args.Info.Height, density, _menu, _session.CanRestart);
+    _layout = new MobileLayout(args.Info.Width, args.Info.Height, density, _menu, _session.CanPause);
     var view = _layout.Viewport;
     Buffer.BlockCopy(_session.Frame.Pixels, 0, _pixels, 0, _pixels.Length * sizeof(int));
     Marshal.Copy(_pixels, 0, _bitmap.GetPixels(), _pixels.Length);
@@ -159,18 +161,72 @@ internal sealed class GamePage : ContentPage, IDisposable
     {
       var rectangle = new SKRect((float)button.X, (float)button.Y,
         (float)(button.X + button.Width), (float)(button.Y + button.Height));
-      _buttonPaint.Color = new SKColor(35, 59, 78, 230);
+      _buttonPaint.Color = new SKColor(35, 59, 78, button.Key.HasValue ? (byte)88 : (byte)40);
       _buttonPaint.Style = SKPaintStyle.Fill;
       canvas.DrawRoundRect(rectangle, 12, 12, _buttonPaint);
-      _buttonPaint.Color = new SKColor(255, 213, 107);
+      _buttonPaint.Color = new SKColor(255, 213, 107, button.Key.HasValue ? (byte)180 : (byte)80);
       _buttonPaint.Style = SKPaintStyle.Stroke;
       _buttonPaint.StrokeWidth = 2;
       canvas.DrawRoundRect(rectangle, 12, 12, _buttonPaint);
       _buttonPaint.Style = SKPaintStyle.Fill;
-      _font.Size = (float)Math.Min(button.Height * 0.25, button.Width / 5.5);
-      canvas.DrawText(button.Label, rectangle.MidX, rectangle.MidY + _font.Size / 3,
-        SKTextAlign.Center, _font, _buttonPaint);
+      _buttonPaint.Color = new SKColor(255, 213, 107, button.Key.HasValue ? (byte)220 : (byte)96);
+      if (button.Label is "↑" or "↓" or "←" or "→")
+      {
+        DrawDirectionArrow(canvas, rectangle, button.Key!.Value);
+      }
+      else if (button.Heading is not null)
+      {
+        if (button.Heading == "○")
+        {
+          _buttonPaint.Style = SKPaintStyle.Stroke;
+          _buttonPaint.StrokeWidth = rectangle.Height * 0.035f;
+          canvas.DrawCircle(rectangle.MidX, rectangle.Top + rectangle.Height * 0.35f,
+            rectangle.Height * 0.17f, _buttonPaint);
+          _buttonPaint.Style = SKPaintStyle.Fill;
+        }
+        else
+        {
+          _font.Size = (float)button.Height * 0.48f;
+          canvas.DrawText(button.Heading, rectangle.MidX, rectangle.Top + rectangle.Height * 0.52f,
+            SKTextAlign.Center, _font, _buttonPaint);
+        }
+
+        _font.Size = (float)button.Height * 0.18f;
+        canvas.DrawText(button.Label, rectangle.MidX, rectangle.Bottom - rectangle.Height * 0.14f,
+          SKTextAlign.Center, _font, _buttonPaint);
+      }
+      else
+      {
+        _font.Size = (float)Math.Min(button.Height * 0.38, button.Width / (button.Label.Length * 0.65));
+        canvas.DrawText(button.Label, rectangle.MidX, rectangle.MidY + _font.Size / 3,
+          SKTextAlign.Center, _font, _buttonPaint);
+      }
     }
+  }
+
+  private void DrawDirectionArrow(SKCanvas canvas, SKRect rectangle, int key)
+  {
+    using var arrow = new SKPath();
+    float size = Math.Min(rectangle.Width, rectangle.Height);
+    for (int index = 0; index < ArrowPoints.Length; index++)
+    {
+      var point = ArrowPoints[index];
+      var rotated = key switch
+      {
+        0x25 => new SKPoint(-point.X, -point.Y),
+        0x26 => new SKPoint(point.Y, -point.X),
+        0x28 => new SKPoint(-point.Y, point.X),
+        _ => point,
+      };
+      float x = rectangle.MidX + rotated.X * size, y = rectangle.MidY + rotated.Y * size;
+      if (index == 0)
+        arrow.MoveTo(x, y);
+      else
+        arrow.LineTo(x, y);
+    }
+
+    arrow.Close();
+    canvas.DrawPath(arrow, _buttonPaint);
   }
 
   private void Touch(object? sender, SKTouchEventArgs args)
@@ -180,8 +236,10 @@ internal sealed class GamePage : ContentPage, IDisposable
 
     if (args.ActionType is SKTouchAction.Released or SKTouchAction.Cancelled or SKTouchAction.Exited)
       _input.SetPointer(args.Id, null);
-    else if (args.ActionType is SKTouchAction.Pressed or SKTouchAction.Moved)
+    else if (args.ActionType == SKTouchAction.Pressed)
       _input.SetPointer(args.Id, _layout?.KeyAt(args.Location.X, args.Location.Y));
+    else if (args.ActionType == SKTouchAction.Moved)
+      _input.MovePointer(args.Id, _layout?.KeyAt(args.Location.X, args.Location.Y));
 
     args.Handled = true;
   }

@@ -65,17 +65,33 @@ with the appropriate signing identity and provisioning profile.
 
 ## Controls, display, and lifecycle
 
-Gameplay uses Left, Right, Down, Jump, Attack, and Pause touch targets. Fingers
-are tracked independently, so movement, jumping, and attacks work together;
-dragging off a control, cancelling a touch, or suspending clears held input.
-Menus and high-score initials use Left/Right/Up/Down, OK, and Back. The pause
-screen also offers Restart. Back closes Settings or resumes from Pause.
+The four-arrow D-pad always appears as a cross: Up above Left/Right, and Down
+below. Up retains the Windows Up-arrow jump mapping during gameplay. Start and
+Select sit at the bottom center. Start toggles pause during gameplay and in the
+pause menu; it does not confirm menu choices. Select cycles menu choices and is
+inactive during gameplay. Jump accepts screen selections and Attack cancels or
+goes back; in gameplay they retain their normal jump and weapon actions.
+Attack and Jump sit side by side at the bottom right, with Roman numeral I above
+Attack and an outlined circle above Jump. Inactive controls are dimmed.
+Cancelling the mobile high-score entry skips submitting that score.
 
-The game stays at 384 x 240. A safe-area-aware landscape canvas centers it above
-the touch controls, preserving its 16:10 aspect ratio and using nearest-neighbor,
-whole-pixel scaling when space allows. Wider devices receive margins rather than
-extra visibility into the level. Control placement adapts to phone/tablet size
-and density, with a reserved touch area rather than covering the playfield.
+Fingers are tracked independently, so movement, jumping, and attacks work
+together; dragging off a control, cancelling a touch, or suspending clears held
+input. Menus and high-score initials use the D-pad and Jump to accept. Held
+touches must be released after switching between gameplay and menus,
+so holding Start cannot repeatedly open and close Pause. Start never sends a
+menu-confirmation action; only Jump accepts selections. Settings
+can be closed with Attack or by selecting its Back row and pressing Jump; the Android Back button
+also closes Settings or resumes from Pause.
+
+The game stays at 384 x 240. A safe-area-aware landscape canvas scales it to the
+largest size that fits the entire available display, preserving its 16:10 aspect
+ratio without cropping. Fractional scaling avoids wasting space on phones whose
+resolution is not a whole multiple of the game resolution; nearest-neighbor
+sampling retains the pixel-art look. Wider devices receive side margins rather
+than extra visibility into the level. Translucent touch controls overlay the
+lower edges of the view instead of reserving a separate strip below the game.
+Control placement adapts to phone/tablet size and density.
 
 Leaving the app pauses gameplay, saves preferences/records, clears touches, and
 silences audio. Returning leaves gameplay paused until the player resumes, with

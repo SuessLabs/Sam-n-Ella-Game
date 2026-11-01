@@ -7,6 +7,8 @@ namespace SamElla.Mobile;
 internal sealed class TouchInput : IGameWindow
 {
   private readonly Dictionary<long, int> _pointers = [];
+  private readonly HashSet<long> _activePointers = [];
+  private readonly HashSet<long> _suppressedPointers = [];
   private readonly GameKeyboard _keyboard = new();
 
   public bool Active { get; set; } = true;
@@ -20,6 +22,35 @@ internal sealed class TouchInput : IGameWindow
 
   public void SetPointer(long id, int? key)
   {
+    if (key is null)
+    {
+      _activePointers.Remove(id);
+      _suppressedPointers.Remove(id);
+    }
+    else
+      _activePointers.Add(id);
+
+    ApplyPointer(id, key);
+  }
+
+  public void MovePointer(long id, int? key)
+  {
+    if (_activePointers.Contains(id))
+      ApplyPointer(id, key);
+  }
+
+  public void SuppressUntilRelease()
+  {
+    _suppressedPointers.UnionWith(_activePointers);
+    _pointers.Clear();
+    _keyboard.Clear();
+  }
+
+  private void ApplyPointer(long id, int? key)
+  {
+    if (_suppressedPointers.Contains(id))
+      return;
+
     if (_pointers.TryGetValue(id, out int previous))
     {
       if (previous == key)
@@ -41,6 +72,8 @@ internal sealed class TouchInput : IGameWindow
 
   public void Clear()
   {
+    _activePointers.Clear();
+    _suppressedPointers.Clear();
     _pointers.Clear();
     _keyboard.Clear();
   }

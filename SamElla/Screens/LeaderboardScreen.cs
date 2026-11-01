@@ -43,13 +43,19 @@ internal sealed class LeaderboardScreen(Leaderboard board)
   public int SubmittedRank { get; private set; }
 
   // Return true only when a newly submitted entry needs to be saved.
-  public bool HandleInput(IReadOnlyList<int> keyPresses, bool windowActive, DateTimeOffset recordedAt)
+  public bool HandleInput(IReadOnlyList<int> keyPresses, bool windowActive, DateTimeOffset recordedAt, bool allowCancel = false)
   {
     if (!IsActive || !windowActive)
       return false;
 
     foreach (int code in keyPresses)
     {
+      if (allowCancel && code == VK_ESCAPE)
+      {
+        IsEnteringInitials = IsActive = false;
+        return false;
+      }
+
       if (!IsEnteringInitials)
       {
         if (code == VK_RETURN || (code == VK_ESCAPE && Context == LeaderboardContext.Title))
