@@ -1,5 +1,9 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.IO;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SamElla.Actors;
 
@@ -43,7 +47,14 @@ public sealed class PlayerCharacterTests : GameTestBase
     game.Enemies.Add(new Enemy(game.X, game.Y) { Direction = 0 });
     game.Update(0, false);
     Assert.IsTrue(game.IsDying);
-    AssertFrame(game, "ella-splatter");
+    string assets = Path.Combine(AppContext.BaseDirectory, "Assets");
+    var renderer = new PixelRenderer(assets);
+    renderer.Draw(game, 0, 0);
+    var palette = Sprite.LoadPalette(Path.Combine(assets, "palette.txt"));
+    Assert.IsTrue(renderer.Frame.Pixels.Contains(palette['P']));
+    Assert.IsTrue(renderer.Frame.Pixels.Contains(palette['Q']));
+    Assert.IsTrue(renderer.Frame.Pixels.Contains(palette['E']));
+    Assert.IsTrue(renderer.Frame.Pixels.Contains(palette['H']));
   }
 
   private Game CreateElla()

@@ -1,17 +1,17 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 namespace SamElla;
 
 internal sealed class GameKeyboard
 {
-  private readonly HashSet<int> _held = [];
-  private readonly HashSet<GameKey> _pressed = [];
-  private readonly List<int> _keyPresses = [];
+  public const int PauseKey = 0x13;
 
+  private readonly HashSet<int> _held = [];
+  private readonly List<int> _keyPresses = [];
+  private readonly HashSet<GameKey> _pressed = [];
   public bool AnyKeyPressed { get; private set; }
   public IReadOnlyList<int> KeyPresses => _keyPresses;
-
-  public bool Down(GameKey key) => _held.Any(code => MapKey(code) == key);
-
-  public bool Pressed(GameKey key) => _pressed.Contains(key);
 
   public void BeginFrame()
   {
@@ -26,6 +26,8 @@ internal sealed class GameKeyboard
     BeginFrame();
   }
 
+  public bool Down(GameKey key) => _held.Any(code => MapKey(code) == key);
+
   public void KeyDown(int code, bool isRepeat = false)
   {
     if (!_held.Add(code) || isRepeat)
@@ -39,6 +41,8 @@ internal sealed class GameKeyboard
 
   public void KeyUp(int code) => _held.Remove(code);
 
+  public bool Pressed(GameKey key) => _pressed.Contains(key);
+
   private static GameKey? MapKey(int code) => code switch
   {
     0x25 or 0x41 => GameKey.Left,
@@ -46,7 +50,7 @@ internal sealed class GameKeyboard
     0x20 or 0x26 or 0x57 => GameKey.Jump,
     0x52 => GameKey.Restart,
     0x1B => GameKey.Escape,
-    0x0D => GameKey.Start,
+    0x0D or PauseKey => GameKey.Start,
     0x58 or 0x11 => GameKey.Fire,
     0x28 or 0x53 => GameKey.Down,
     _ => null,

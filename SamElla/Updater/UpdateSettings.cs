@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 namespace SamElla.Updater;
 
 internal sealed class UpdateSettings
@@ -17,7 +20,6 @@ internal sealed class UpdateSettings
           settings.IncludePrereleases = enabled;
       }
     }
-
     catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
     {
       // Missing or unreadable preferences keep stable updates enabled.

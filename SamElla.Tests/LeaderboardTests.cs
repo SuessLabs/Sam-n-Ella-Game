@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.IO;
 using System.Linq;
@@ -10,6 +13,60 @@ namespace SamElla.Tests;
 public sealed class LeaderboardTests : GameTestBase
 {
   private static readonly DateTimeOffset Date = new(2026, 10, 29, 12, 0, 0, TimeSpan.FromHours(-4));
+
+  [TestMethod]
+  [DataRow(false)]
+  [DataRow(true)]
+  public void MobileCanCancelInitialsWithoutSavingWhileDesktopKeepsExistingEntryBehavior(bool allowCancel)
+  {
+    var screen = new LeaderboardScreen(new Leaderboard());
+    var game = WinGame();
+    screen.TryOpenFor(game);
+    int[] keys = allowCancel ? [0x1B, 0x0D] : [0x1B];
+    Assert.IsFalse(screen.HandleInput(keys, true, Date, allowCancel));
+    Assert.AreEqual(!allowCancel, screen.IsActive);
+    Assert.AreEqual(!allowCancel, screen.IsEnteringInitials);
+    Assert.IsEmpty(screen.Board.Entries);
+    Assert.IsFalse(screen.TryOpenFor(game));
+  }
+
+  [TestMethod]
+  public void MobileJumpAdvancesInitialSlotsAndAcceptsOnlyAtTheLastSlot()
+  {
+    var screen = new LeaderboardScreen(new Leaderboard());
+    screen.TryOpenFor(WinGame());
+    Assert.IsFalse(screen.HandleInput([0x26, 0x0D], true, Date, mobileControls: true));
+    Assert.AreEqual("BAA", screen.Initials);
+    Assert.AreEqual(1, screen.SelectedInitialIndex);
+    Assert.IsEmpty(screen.Board.Entries);
+    Assert.IsFalse(screen.HandleInput([0x26, 0x0D], true, Date, mobileControls: true));
+    Assert.AreEqual("BBA", screen.Initials);
+    Assert.AreEqual(2, screen.SelectedInitialIndex);
+    Assert.IsEmpty(screen.Board.Entries);
+    Assert.IsTrue(screen.HandleInput([0x26, 0x0D, 0x0D], true, Date, mobileControls: true));
+    Assert.AreEqual("BBB", screen.Board.Entries.Single().Initials);
+    Assert.IsFalse(screen.IsEnteringInitials);
+    Assert.IsTrue(screen.IsActive, "Submitting must not also dismiss the score table.");
+  }
+
+  [TestMethod]
+  [DataRow(0)]
+  [DataRow(1)]
+  [DataRow(2)]
+  public void MobileStartAcceptsInitialsFromAnySlotWithoutAdvancing(int slot)
+  {
+    var screen = new LeaderboardScreen(new Leaderboard());
+    screen.TryOpenFor(WinGame());
+    for (int index = 0; index < slot; index++)
+      screen.HandleInput([0x0D], true, Date, mobileControls: true);
+
+    Assert.AreEqual(slot, screen.SelectedInitialIndex);
+    Assert.IsFalse(screen.HandleInput([GameKeyboard.PauseKey], false, Date, mobileControls: true));
+    Assert.IsTrue(screen.HandleInput([GameKeyboard.PauseKey, 0x0D], true, Date, mobileControls: true));
+    Assert.AreEqual("AAA", screen.Board.Entries.Single().Initials);
+    Assert.IsTrue(screen.IsActive);
+    Assert.IsFalse(screen.IsEnteringInitials);
+  }
 
   [TestMethod]
   public void ArrowsEditSelectedPositionAndEnterAcceptsWithoutClosingBoard()
@@ -116,7 +173,9 @@ public sealed class LeaderboardTests : GameTestBase
       Assert.IsTrue(board.TryAdd("ABC", score, Date));
 
     Assert.HasCount(10, board.Entries);
+
     CollectionAssert.AreEqual(new[] { 1000, 900, 800, 700, 600, 500, 400, 300, 200, 100 }, board.Entries.Select(entry => entry.Score).ToArray());
+
     Assert.IsFalse(board.TryAdd("XYZ", 100, Date.AddDays(1)));
     Assert.IsFalse(board.Qualifies(99));
     Assert.IsTrue(board.TryAdd("new", 900, Date.AddDays(1)));
@@ -138,6 +197,7 @@ public sealed class LeaderboardTests : GameTestBase
     settings.Leaderboard.TryAdd("XYZ", 5000, Date.AddHours(1));
     settings.Save(NextPath);
     var restored = GameSettings.Load(NextPath);
+
     Assert.AreEqual(35, restored.Audio.MusicVolume);
     Assert.AreEqual(5000, restored.Records.HighScore);
     Assert.HasCount(2, restored.Leaderboard.Entries);
@@ -161,11 +221,14 @@ public sealed class LeaderboardTests : GameTestBase
 
     var screen = new LeaderboardScreen(board);
     Assert.IsFalse(screen.TryOpenFor(WinGame()));
+
     screen.OpenViewer();
     Assert.AreEqual(LeaderboardContext.Title, screen.Context);
     Assert.IsFalse(screen.IsEnteringInitials);
+
     screen.HandleInput([0x41, 0x42, 0x43], true, Date);
     Assert.HasCount(10, board.Entries);
+
     screen.HandleInput([0x1B], true, Date);
     Assert.IsFalse(screen.IsActive);
   }
@@ -193,6 +256,7 @@ public sealed class LeaderboardTests : GameTestBase
     renderer.DrawLeaderboard(screen);
     Assert.AreEqual(0xFFFFD56Bu, renderer.Frame.Pixels[101 * PixelRenderer.Width + 130]);
     Assert.AreEqual(0xFF527787u, renderer.Frame.Pixels[101 * PixelRenderer.Width + 174]);
+
     string? preview = Environment.GetEnvironmentVariable("SAMELLA_INITIALS_PREVIEW");
     if (preview is not null)
       renderer.Frame.SavePng(preview);
@@ -214,10 +278,12 @@ public sealed class LeaderboardTests : GameTestBase
   {
     var settings = new GameSettings();
     Assert.IsTrue(settings.Leaderboard.TryAdd(initials, 100, Date));
+
     settings.Save(NextPath);
     var restored = GameSettings.Load(NextPath);
     Assert.HasCount(1, restored.Leaderboard.Entries);
     Assert.AreEqual(initials.ToUpperInvariant(), restored.Leaderboard.Entries[0].Initials);
+
     restored.Audio.MusicEnabled = false;
     restored.Save(NextPath);
     Assert.AreEqual(initials.ToUpperInvariant(), GameSettings.Load(NextPath).Leaderboard.Entries[0].Initials);
@@ -229,6 +295,7 @@ public sealed class LeaderboardTests : GameTestBase
     var title = new TitleScreen();
     Assert.AreEqual(MenuAction.Leaderboard, title.HandleInput(0, [0x28, 0x28, 0x0D], true));
     Assert.IsTrue(title.IsActive);
+
     var menu = new ScreenMenu();
     Assert.AreEqual(MenuAction.Primary, menu.HandleInput([0x28, 0x28, 0x0D], true));
   }
@@ -255,6 +322,7 @@ public sealed class LeaderboardTests : GameTestBase
     const string characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ";
     var screen = new LeaderboardScreen(new Leaderboard());
     screen.TryOpenFor(WinGame());
+
     for (int index = 1; index <= characters.Length; index++)
     {
       screen.HandleInput([0x26], true, Date);

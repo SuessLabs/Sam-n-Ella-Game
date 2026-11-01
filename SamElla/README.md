@@ -86,7 +86,7 @@ at game startup, before any music or effects play. Only `settings.txt` is used.
 Missing or invalid preferences use the defaults: music and effects on, music at
 30% volume, and sound effects at 50%. Existing saved volume preferences are preserved.
 
-You have three lives. Enemy side contact, landing on a spike tip from above, and falling into a pit cost a life. Spikes block sideways movement like pipes without causing side-contact damage. Touching them from below is safe. The player becomes a blood-and-clothing splatter while gameplay freezes. PRESS ANY KEY TO CONTINUE appears immediately, and a fresh keypress can restart at any point during death. With no keypress, the original two-second death animation plays and then waits indefinitely. A fresh keypress reloads the current level; holding a key does not dismiss the screen. After the last life, only a fresh Enter press can start a new run. Otherwise, the death animation finishes and a red GAME OVER page displays a tombstone and a random roast. Enter starts a new run from level one with cleared rewards and the normal starting lives, or the cheat starting lives if enabled. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
+You have three lives. Enemy side contact, landing on a spike tip from above, and falling into a pit cost a life. Spikes block sideways movement like pipes without causing side-contact damage. Touching them from below is safe. During ordinary deaths, gameplay freezes while a blood-and-clothing burst animates into falling debris and uncoiling intestines, then settles into a puddle. Sam and Ella retain their own clothing colors. The animation follows the death timer, freezes when paused, and clears on respawn. Retry stays locked until the two-second death animation and actual death-sound playback finish. A waiting message appears during that time; afterward the game waits indefinitely for a fresh retry press. On Windows, a fresh keypress reloads the current level. On mobile, only Jump or Start retries; other controls and held touches cannot skip death. After the last life, only a fresh Enter press can start a new run. Otherwise, the death animation finishes and a red GAME OVER page displays a tombstone and a random roast. Enter starts a new run from level one with cleared rewards and the normal starting lives, or the cheat starting lives if enabled. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
 
 ### Top 10 leaderboard
 
@@ -149,7 +149,7 @@ enemies into the void.
 
 Before each level begins, a start page shows its section-level number, display name, remaining lives, and a random demotivating uncle quote. It lasts three seconds or dismisses on any fresh keypress. Gameplay and completion timing stay frozen during the page, and losing window focus freezes the countdown. The page also appears on retries and when restarting the game. The `Name` header supplies the display name, with a maximum of 32 characters. Older files without `Name` derive a name from the filename, omitting numeric prefixes and replacing hyphens or underscores with spaces (limited to 32 characters). Edit the 30 lines in `Assets/uncle-quotes.txt` to customize the advice.
 
-When the last life is lost, the usual two-second death animation plays unless interrupted by Enter, followed by a red GAME OVER page with a tombstone, a random quote from `Assets/game-over-quotes.txt`, and the level, score, and death count. The quote remains fixed until a fresh Enter press restarts the run; other keys and held Enter do not restart it. The file contains 15 roasts. Both quote files accept one quote per line and ignore blank lines and lines beginning with `;`; long text wraps and is shortened if necessary. Relaunch after editing.
+When the last life is lost, the usual two-second death animation plays and waits for the death sound to finish, followed by a red GAME OVER page with a tombstone, a random quote from `Assets/game-over-quotes.txt`, and the level, score, and death count. The quote remains fixed until a fresh Enter press restarts the run; other keys and held Enter do not restart it. The file contains 15 roasts. Both quote files accept one quote per line and ignore blank lines and lines beginning with `;`; long text wraps and is shortened if necessary. Relaunch after editing.
 
 ## Make Your Own Levels
 
@@ -435,11 +435,12 @@ brick hurdles, two relief pipes per level, and toilet finishes:
 | Level | Name | Starting weapon |
 | --- | --- | --- |
 | 04-02 | Paper Chase | Throwable toilet paper |
-| 04-03 | Roll With It | Throwable toilet paper |
+| 04-03 | Roll With It | None; toilet paper pickup near the start |
 | 04-04 | Whip It Quick | Chain whip |
 | 04-05 | Panic Parade | Chain whip |
 
-Each stage starts the player grown and equipped, including after a retry, with
+Each stage starts the player grown, including after a retry. 04-03 starts without
+a weapon and supplies a toilet-paper pickup; the others start equipped with
 a spare weapon pickup near the start. Bottles remain 96 blocks apart, roughly
 eight seconds of running. Blue and purple punks throw bottles throughout these
 routes alongside regular grandpas. Grandpas have three health and swing a cane
@@ -457,12 +458,14 @@ a chain whip replaces toilet paper, and the later stages supply their own whip.
 and the ordinary 100-second timer. Its boss encounter is intentionally pending.
 Custom maps can use `L` for a toilet-paper pickup block, `g` for a regular grandpa,
 and `StartingPower=ToiletPaper` or `StartingPower=ChainWhip` for starting gear.
+`StartingPower=Growth` starts grown without a weapon, replacing carried weapons.
 
 ### Boss evasions and the expanded Emo Kid gauntlet
 
 03-06 is now 256 blocks long. Its middle section adds flies, worms, and both
-punk variants before the boss arena. The level offers a growth heart but no
-flamethrower, shotgun, or chain-whip pickups; carried weapons remain available.
+punk variants before the boss arena. Near the start, collect the growth heart
+from the first `M` block, then the chain whip from the following `W` block.
+The level has no flamethrower or shotgun pickups; carried weapons remain available.
 The exit pipe still returns the player to daylight after the boss is defeated.
 
 All bosses (Dung-Bag, Old Man, and Emo Kid) quickly dash away after every second

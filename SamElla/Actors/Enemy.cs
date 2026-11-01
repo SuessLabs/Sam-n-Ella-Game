@@ -1,22 +1,28 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 namespace SamElla.Actors;
 
 public sealed class Enemy
 {
-  public const double EmoBossBodyHeight = 2.5;
+  public const int BossDodgeDurationTicks = 18;
+  public const double BossDodgeSpeed = 14;
+  public const int BossThrowIntervalTicks = 100;
   public const int CaneAttackIntervalTicks = 120;
   public const int CaneSwingDurationTicks = 36;
   public const int CaneWaveDurationTicks = 18;
   public const double CaneWaveRange = 2;
-  public const int BossThrowIntervalTicks = 100;
-  public const int BossDodgeDurationTicks = 18;
-  public const double BossDodgeSpeed = 14;
-  public const int SquashDurationTicks = 60;
-  public const int HopIntervalTicks = 24;
-  public const int StompStunTicks = 20;
-  public const int PoopIntervalTicks = 180;
-  public const int CrawlerEmergenceDurationTicks = 60;
   public const double CrawlerBodyHeight = 0.5;
+  public const int CrawlerEmergenceDurationTicks = 60;
   public const double CrawlerWakeDistance = 4;
+  public const double EmoBossBodyHeight = 2.5;
+  public const int HopIntervalTicks = 24;
+  public const int PoopIntervalTicks = 180;
+  public const int SquashDurationTicks = 60;
+  public const int StompStunTicks = 20;
+  public int Direction = -1;
+
+  public double X, Y, VelocityY;
 
   public Enemy(double x, double y, EnemyKind kind = EnemyKind.Walker, EnemySettings? settings = null)
   {
@@ -46,31 +52,11 @@ public sealed class Enemy
     PatrolFloorRow = (int)Math.Round(y + BodyHeight);
   }
 
-  public int Direction = -1;
-
-  public double X, Y, VelocityY;
-
-  public EnemyKind Kind { get; }
-  public bool IsBoss => Kind is EnemyKind.DungBag or EnemyKind.OldMan or EnemyKind.EmoBoss;
-  public bool IsTeen => Kind is EnemyKind.PunkBlue or EnemyKind.PunkPurple or EnemyKind.EmoBoss;
-  public string Name => Kind == EnemyKind.Grandpa ? "Grandpa" : Kind == EnemyKind.EmoBoss ? "Emo Kid" : Kind is EnemyKind.PunkBlue or EnemyKind.PunkPurple ? "Punk-tard" : Kind == EnemyKind.OldMan ? "Old Man" : Kind == EnemyKind.DungBag ? "Dung-Bag" : Kind.ToString();
-  public int CaneSwingTicksRemaining { get; internal set; }
-  public int AttackDirection { get; internal set; } = -1;
+  public double AirWaveLength { get; internal set; }
   public double AirWaveX { get; internal set; }
   public double AirWaveY { get; internal set; }
-  public double AirWaveLength { get; internal set; }
-  internal int CaneAttackTicksRemaining { get; set; } = CaneAttackIntervalTicks;
-  internal double PatrolOriginY { get; }
-  internal int FlightTicks { get; set; }
-  internal int ProjectileAttackTicks { get; set; } = 120;
-  internal int ProjectileCount { get; set; }
-  public int ThrowPoseTicksRemaining { get; internal set; }
-  internal int SpeechTicks { get; set; } = 90;
-  internal int SpeechIndex { get; set; }
-  internal double PatrolOriginX { get; }
-  internal int ThrowTicksRemaining { get; set; } = BossThrowIntervalTicks;
-
-  public EnemySettings Settings { get; }
+  public bool Alive { get; private set; } = true;
+  public int AttackDirection { get; internal set; } = -1;
 
   public double BodyHeight => Kind switch
   {
@@ -82,27 +68,35 @@ public sealed class Enemy
     _ => Game.BodyHeight,
   };
 
-  public bool IsBuried { get; private set; }
-  public int EmergenceTicksRemaining { get; private set; }
-  public bool IsEmerging => EmergenceTicksRemaining > 0;
-  public int EmergenceFrameIndex => Math.Min(2, (CrawlerEmergenceDurationTicks - EmergenceTicksRemaining) / 20);
-  public bool CanInteract => Alive && !IsBuried && !IsEmerging;
-
-  public int BossHeadStomps { get; private set; }
   public int BossDodgeTicksRemaining { get; internal set; }
-
+  public int BossHeadStomps { get; private set; }
+  public int CaneSwingTicksRemaining { get; internal set; }
+  public bool CanInteract => Alive && !IsBuried && !IsEmerging;
+  public int EmergenceFrameIndex => Math.Min(2, (CrawlerEmergenceDurationTicks - EmergenceTicksRemaining) / 20);
+  public int EmergenceTicksRemaining { get; private set; }
   public int Health { get; private set; }
-
-  public bool Alive { get; private set; } = true;
-
+  public bool IsBoss => Kind is EnemyKind.DungBag or EnemyKind.OldMan or EnemyKind.EmoBoss;
+  public bool IsBuried { get; private set; }
+  public bool IsEmerging => EmergenceTicksRemaining > 0;
+  public bool IsTeen => Kind is EnemyKind.PunkBlue or EnemyKind.PunkPurple or EnemyKind.EmoBoss;
+  public EnemyKind Kind { get; }
+  public string Name => Kind == EnemyKind.Grandpa ? "Grandpa" : Kind == EnemyKind.EmoBoss ? "Emo Kid" : Kind is EnemyKind.PunkBlue or EnemyKind.PunkPurple ? "Punk-tard" : Kind == EnemyKind.OldMan ? "Old Man" : Kind == EnemyKind.DungBag ? "Dung-Bag" : Kind.ToString();
+  public EnemySettings Settings { get; }
   public int SquashTicksRemaining { get; private set; }
-
+  public int ThrowPoseTicksRemaining { get; internal set; }
+  internal int CaneAttackTicksRemaining { get; set; } = CaneAttackIntervalTicks;
+  internal int FlightTicks { get; set; }
   internal int HopTicksRemaining { get; set; }
   internal int PatrolFloorRow { get; set; }
-
-  internal int StunTicksRemaining { get; set; }
-
+  internal double PatrolOriginX { get; }
+  internal double PatrolOriginY { get; }
   internal int PoopTicksRemaining { get; set; } = PoopIntervalTicks;
+  internal int ProjectileAttackTicks { get; set; } = 120;
+  internal int ProjectileCount { get; set; }
+  internal int SpeechIndex { get; set; }
+  internal int SpeechTicks { get; set; } = 90;
+  internal int StunTicksRemaining { get; set; }
+  internal int ThrowTicksRemaining { get; set; } = BossThrowIntervalTicks;
 
   internal bool AdvanceEmergence(double playerX, double playerY, bool supported = true)
   {
@@ -143,27 +137,6 @@ public sealed class Enemy
       SquashTicksRemaining--;
   }
 
-  internal bool Stomp(int damage = 1)
-  {
-    if (damage is < 1 or > 10)
-      throw new ArgumentOutOfRangeException(nameof(damage));
-
-    bool defeated = Hit(damage);
-    if (IsBoss && Alive)
-    {
-      BossHeadStomps++;
-      if (BossHeadStomps % 2 == 0)
-      {
-        BossDodgeTicksRemaining = BossDodgeDurationTicks;
-        StunTicksRemaining = 0;
-        CaneSwingTicksRemaining = 0;
-        AirWaveLength = 0;
-      }
-    }
-
-    return defeated;
-  }
-
   internal bool Hit(int damage)
   {
     if (damage is < 1 or > 12)
@@ -196,5 +169,26 @@ public sealed class Enemy
     Health = 0;
     VelocityY = 0;
     SquashTicksRemaining = SquashDurationTicks;
+  }
+
+  internal bool Stomp(int damage = 1)
+  {
+    if (damage is < 1 or > 10)
+      throw new ArgumentOutOfRangeException(nameof(damage));
+
+    bool defeated = Hit(damage);
+    if (IsBoss && Alive)
+    {
+      BossHeadStomps++;
+      if (BossHeadStomps % 2 == 0)
+      {
+        BossDodgeTicksRemaining = BossDodgeDurationTicks;
+        StunTicksRemaining = 0;
+        CaneSwingTicksRemaining = 0;
+        AirWaveLength = 0;
+      }
+    }
+
+    return defeated;
   }
 }

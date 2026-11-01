@@ -1,0 +1,17 @@
+{
+  "appName": "Sam n' Ella",
+  "packageId": "com.suesslabs.samella",
+  "publisherName": "Xeno Innovations",
+  "supportEmail": "game-support@xenoinc.com",
+  "supportEmailStatus": "Placeholder; replace with a working monitored address before submission",
+  "websiteUrl": "https://github.com/SuessLabs/Sam-n-Ella-Game",
+  "privacyPolicyUrl": "https://github.com/SuessLabs/Sam-n-Ella-Game/Docs/GooglePlay/",
+  "accountType": "Organization",
+  "pricing": "Free",
+  "countries": "[DISTRIBUTION_COUNTRIES]",
+  "listingLocale": "en-US",
+  "categorySuggestion": "GAME_ACTION",
+  "requestedAudience": "All",
+  "playConsoleAgeGroups": "[PENDING_CONTENT_REVIEW]",
+  "contentRating": "[ASSIGNED_BY_RATING_QUESTIONNAIRE]"
+}

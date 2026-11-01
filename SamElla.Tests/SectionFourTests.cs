@@ -1,9 +1,11 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SamElla.Actors;
-using SamElla.Effects;
 using SamElla.Screens;
 
 namespace SamElla.Tests;
@@ -40,7 +42,7 @@ public sealed class SectionFourTests : GameTestBase
     var level = game.Level;
     Assert.AreEqual(600, game.LevelTicksRemaining);
     Assert.IsTrue(game.IsLarge);
-    Assert.AreEqual(index < 2, game.HasToiletPaper);
+    Assert.AreEqual(index == 0, game.HasToiletPaper);
     Assert.AreEqual(index >= 2, game.HasChainWhip);
     Assert.AreEqual(index < 2 ? 'L' : 'W', level.Tile(14, 16));
     Assert.IsNotEmpty(level.BluePunkSpawns);
@@ -53,8 +55,40 @@ public sealed class SectionFourTests : GameTestBase
     int pipes = Enumerable.Range(0, level.Width).Count(x => game.CanUseReliefPipe(x, 19) && level.Tile(x - 1, 19) != 'P');
     Assert.AreEqual(2, pipes);
     game.Restart();
-    Assert.AreEqual(index < 2, game.HasToiletPaper);
+    Assert.AreEqual(index == 0, game.HasToiletPaper);
     Assert.AreEqual(index >= 2, game.HasChainWhip);
+  }
+
+  [TestMethod]
+  public void RollWithItStartsGrownWithoutCarriedPaperAndOffersAPickup()
+  {
+    var prior = Arena("ToiletPaper");
+    string[] rows = File.ReadAllLines(LevelPath).Select(row => row.Replace('G', '.')).ToArray();
+    int mapStart = rows.Length - prior.Level.Height;
+    char[] goal = rows[mapStart + 7].ToCharArray();
+    goal[4] = 'G';
+    rows[mapStart + 7] = new string(goal);
+    File.WriteAllLines(LevelPath, rows);
+    var game = new Game([LevelPath, Path.Combine(AppContext.BaseDirectory, "Levels", Names[1])]);
+    for (int tick = 0; tick < 30 && game.LevelNumber == 1; tick++)
+      game.Update(1, false);
+
+    Assert.AreEqual(2, game.LevelNumber);
+    Assert.IsTrue(game.IsLarge);
+    Assert.IsFalse(game.HasToiletPaper || game.HasBoomStick || game.HasChainWhip || game.HasFlamethrower);
+    Assert.AreEqual('L', game.Level.Tile(14, 16));
+    game.Enemies.Clear();
+    for (int tick = 0; tick < 100 && game.X < 13.9; tick++)
+      game.Update(1, false);
+
+    game.QueueJump();
+    Tick(game, 30, jump: true);
+    TouchHeart(game);
+    Assert.IsTrue(game.HasToiletPaper);
+    Tick(game, game.LevelTicksRemaining);
+    Assert.IsTrue(game.ContinueAfterDeath());
+    Assert.IsTrue(game.IsLarge);
+    Assert.IsFalse(game.HasToiletPaper);
   }
 
   [TestMethod]

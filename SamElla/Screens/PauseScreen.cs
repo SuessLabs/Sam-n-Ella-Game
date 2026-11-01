@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 namespace SamElla.Screens;
 
 internal sealed class PauseScreen
@@ -5,14 +8,6 @@ internal sealed class PauseScreen
   private readonly ScreenMenu _menu = new();
 
   public int SelectedIndex => _menu.SelectedIndex;
-
-  public void Open(Game game)
-  {
-    if (!game.Paused)
-      _menu.Reset();
-
-    game.Paused = true;
-  }
 
   public MenuAction HandleInput(Game game, IReadOnlyList<int> keyPresses, bool windowActive)
   {
@@ -33,5 +28,13 @@ internal sealed class PauseScreen
       game.Paused = false;
 
     return action;
+  }
+
+  public void Open(Game game)
+  {
+    if (!game.Paused)
+      _menu.Reset();
+
+    game.Paused = true;
   }
 }

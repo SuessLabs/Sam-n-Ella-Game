@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text;
@@ -15,19 +18,6 @@ internal sealed class PixelBuffer(int width, int height)
 
   public void Clear(uint color) => Array.Fill(Pixels, color);
 
-  public void OverlayBlack(byte opacity)
-  {
-    uint remaining = (uint)(255 - opacity);
-    for (int i = 0; i < Pixels.Length; i++)
-    {
-      uint pixel = Pixels[i];
-      uint red = ((pixel >> 16) & 255) * remaining / 255;
-      uint green = ((pixel >> 8) & 255) * remaining / 255;
-      uint blue = (pixel & 255) * remaining / 255;
-      Pixels[i] = (pixel & 0xFF000000) | (red << 16) | (green << 8) | blue;
-    }
-  }
-
   public void Draw(Sprite sprite, int x, int y, bool flip = false, int clipBottom = int.MaxValue)
   {
     int bottom = Math.Min(Height, clipBottom);
@@ -44,15 +34,6 @@ internal sealed class PixelBuffer(int width, int height)
           Pixels[((y + sy) * Width) + x + sx] = color;
       }
     }
-  }
-
-  public void Fill(int x, int y, int width, int height, uint color)
-  {
-    int left = Math.Clamp(x, 0, Width);
-    int right = Math.Clamp(x + width, 0, Width);
-
-    for (int row = Math.Max(0, y); row < Math.Min(Height, y + height); row++)
-      Array.Fill(Pixels, color, (row * Width) + left, Math.Max(0, right - left));
   }
 
   public void DrawTranslucent(Sprite sprite, int x, int y, byte opacity)
@@ -80,6 +61,15 @@ internal sealed class PixelBuffer(int width, int height)
     }
   }
 
+  public void Fill(int x, int y, int width, int height, uint color)
+  {
+    int left = Math.Clamp(x, 0, Width);
+    int right = Math.Clamp(x + width, 0, Width);
+
+    for (int row = Math.Max(0, y); row < Math.Min(Height, y + height); row++)
+      Array.Fill(Pixels, color, (row * Width) + left, Math.Max(0, right - left));
+  }
+
   public void FillTranslucent(int x, int y, int width, int height, uint color, byte opacity)
   {
     int left = Math.Clamp(x, 0, Width);
@@ -96,6 +86,19 @@ internal sealed class PixelBuffer(int width, int height)
         uint blue = (((color & 255) * opacity) + ((target & 255) * inverse)) / 255;
         Pixels[index] = 0xFF000000 | (red << 16) | (green << 8) | blue;
       }
+    }
+  }
+
+  public void OverlayBlack(byte opacity)
+  {
+    uint remaining = (uint)(255 - opacity);
+    for (int i = 0; i < Pixels.Length; i++)
+    {
+      uint pixel = Pixels[i];
+      uint red = ((pixel >> 16) & 255) * remaining / 255;
+      uint green = ((pixel >> 8) & 255) * remaining / 255;
+      uint blue = (pixel & 255) * remaining / 255;
+      Pixels[i] = (pixel & 0xFF000000) | (red << 16) | (green << 8) | blue;
     }
   }
 

@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 namespace SamElla.Screens;
 
 internal enum LeaderboardContext
@@ -40,13 +43,20 @@ internal sealed class LeaderboardScreen(Leaderboard board)
   public int SubmittedRank { get; private set; }
 
   // Return true only when a newly submitted entry needs to be saved.
-  public bool HandleInput(IReadOnlyList<int> keyPresses, bool windowActive, DateTimeOffset recordedAt)
+  public bool HandleInput(IReadOnlyList<int> keyPresses, bool windowActive, DateTimeOffset recordedAt,
+    bool allowCancel = false, bool mobileControls = false)
   {
     if (!IsActive || !windowActive)
       return false;
 
     foreach (int code in keyPresses)
     {
+      if (allowCancel && code == VK_ESCAPE)
+      {
+        IsEnteringInitials = IsActive = false;
+        return false;
+      }
+
       if (!IsEnteringInitials)
       {
         if (code == VK_RETURN || (code == VK_ESCAPE && Context == LeaderboardContext.Title))
@@ -75,8 +85,14 @@ internal sealed class LeaderboardScreen(Leaderboard board)
         _typingIndex = Math.Max(0, _typingIndex - 1);
         SetInitial(' ');
       }
-      else if (code == VK_RETURN)
+      else if (code == VK_RETURN || (mobileControls && code == GameKeyboard.PauseKey))
       {
+        if (mobileControls && code == VK_RETURN && SelectedInitialIndex < 2)
+        {
+          _typingIndex = SelectedInitialIndex + 1;
+          continue;
+        }
+
         int rank = Board.RankFor(Score);
         if (Board.TryAdd(Initials, Score, recordedAt))
         {
@@ -105,6 +121,8 @@ internal sealed class LeaderboardScreen(Leaderboard board)
 
     return false;
   }
+
+  public bool HasHandled(Game game) => ReferenceEquals(_observedGame, game) && _outcomeHandled;
 
   public void OpenViewer()
   {

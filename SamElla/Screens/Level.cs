@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 namespace SamElla;
 
 public sealed class Level
@@ -7,46 +10,6 @@ public sealed class Level
   public const int SpeedRunTimeLimitSeconds = 10;
 
   private readonly char[,] _tiles;
-
-  public string Name { get; }
-  public string DisplayName { get; }
-  public int? Section { get; }
-  public int? SectionLevel { get; }
-  public string? SectionLevelNumber => Section.HasValue ? $"{Section:00}-{SectionLevel:00}" : null;
-
-  public PipePassage? EntryPipe { get; private set; }
-  public PipePassage? ExitPipe { get; private set; }
-  public bool StartsWithShotgun { get; private set; }
-  public bool StartsWithToiletPaper { get; private set; }
-  public bool StartsWithChainWhip { get; private set; }
-  public bool IsSpeedRun { get; private set; }
-  public BackgroundTheme Background { get; }
-  public bool EnemiesAvoidLedges { get; }
-  public int TimeLimitSeconds { get; }
-
-  public int Width => _tiles.GetLength(0);
-
-  public int Height => _tiles.GetLength(1);
-
-  public (int X, int Y) Spawn { get; private set; }
-
-  public List<(int X, int Y)> FlySpawns { get; } = [];
-  public List<(int X, int Y)> WormSpawns { get; } = [];
-  public List<(int X, int Y)> BluePunkSpawns { get; } = [];
-  public List<(int X, int Y)> PurplePunkSpawns { get; } = [];
-  public List<(int X, int Y)> EmoBossSpawns { get; } = [];
-
-  public List<(int X, int Y)> GrandpaSpawns { get; } = [];
-
-  public List<(int X, int Y)> OldManSpawns { get; } = [];
-
-  public List<(int X, int Y)> BossSpawns { get; } = [];
-
-  public List<(int X, int Y)> EnemySpawns { get; } = [];
-  public List<(int X, int Y)> ToasterCatSpawns { get; } = [];
-  public List<(int X, int Y)> ZombieSpawns { get; } = [];
-  public List<(int X, int Y)> DogSpawns { get; } = [];
-  public List<(int X, int Y)> CreepyCrawlerSpawns { get; } = [];
 
   private Level(string name, char[,] tiles, BackgroundTheme background, bool enemiesAvoidLedges, int timeLimitSeconds, string displayName)
   {
@@ -67,6 +30,39 @@ public sealed class Level
     TimeLimitSeconds = timeLimitSeconds;
     this._tiles = tiles;
   }
+
+  public BackgroundTheme Background { get; }
+  public List<(int X, int Y)> BluePunkSpawns { get; } = [];
+  public List<(int X, int Y)> BossSpawns { get; } = [];
+  public List<(int X, int Y)> CreepyCrawlerSpawns { get; } = [];
+  public string DisplayName { get; }
+  public List<(int X, int Y)> DogSpawns { get; } = [];
+  public List<(int X, int Y)> EmoBossSpawns { get; } = [];
+  public bool EnemiesAvoidLedges { get; }
+  public List<(int X, int Y)> EnemySpawns { get; } = [];
+  public PipePassage? EntryPipe { get; private set; }
+  public PipePassage? ExitPipe { get; private set; }
+  public List<(int X, int Y)> FlySpawns { get; } = [];
+  public List<(int X, int Y)> GrandpaSpawns { get; } = [];
+  public int Height => _tiles.GetLength(1);
+  public bool IsSpeedRun { get; private set; }
+  public string Name { get; }
+  public List<(int X, int Y)> OldManSpawns { get; } = [];
+  public List<(int X, int Y)> PurplePunkSpawns { get; } = [];
+  public int? Section { get; }
+  public int? SectionLevel { get; }
+  public string? SectionLevelNumber => Section.HasValue ? $"{Section:00}-{SectionLevel:00}" : null;
+  public (int X, int Y) Spawn { get; private set; }
+  public bool StartsGrown { get; private set; }
+  public bool StartsWithChainWhip { get; private set; }
+  public bool StartsWithShotgun { get; private set; }
+  public bool StartsWithToiletPaper { get; private set; }
+  public int TimeLimitSeconds { get; }
+
+  public List<(int X, int Y)> ToasterCatSpawns { get; } = [];
+  public int Width => _tiles.GetLength(0);
+  public List<(int X, int Y)> WormSpawns { get; } = [];
+  public List<(int X, int Y)> ZombieSpawns { get; } = [];
 
   public static Level Load(string path) => Parse(Path.GetFileNameWithoutExtension(path), File.ReadAllLines(path));
 
@@ -107,7 +103,7 @@ public sealed class Level
         && bool.TryParse(setting[1], out bool timedRun))
         speedRun = timedRun;
       else if (setting[0].Equals("StartingPower", StringComparison.OrdinalIgnoreCase)
-        && new[] { "None", "Shotgun", "ChainWhip", "ToiletPaper" }.Contains(setting[1], StringComparer.OrdinalIgnoreCase))
+        && new[] { "None", "Growth", "Shotgun", "ChainWhip", "ToiletPaper" }.Contains(setting[1], StringComparer.OrdinalIgnoreCase))
         startingPower = setting[1];
       else if (setting[0].Equals("Background", StringComparison.OrdinalIgnoreCase)
         && Enum.TryParse(setting[1], true, out BackgroundTheme parsedBackground) && Enum.IsDefined(parsedBackground)
@@ -133,7 +129,7 @@ public sealed class Level
         && int.TryParse(setting[1], out int seconds) && seconds is >= 1 and <= 9999)
         timeLimitSeconds = seconds;
       else
-        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Name=1..32 display characters, Background=Day or Background=Night or Background=Underworld, EntryPipe/ExitPipe=x,y,targetX,targetY, StartingPower=None/Shotgun/ChainWhip/ToiletPaper, SpeedRun=true/false, EnemyLedges=Turn/Fall, or TimeLimit=1..9999 seconds.");
+        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Name=1..32 display characters, Background=Day or Background=Night or Background=Underworld, EntryPipe/ExitPipe=x,y,targetX,targetY, StartingPower=None/Growth/Shotgun/ChainWhip/ToiletPaper, SpeedRun=true/false, EnemyLedges=Turn/Fall, or TimeLimit=1..9999 seconds.");
 
       mapStart++;
       while (mapStart < lines.Length && string.IsNullOrWhiteSpace(lines[mapStart]))
@@ -153,6 +149,7 @@ public sealed class Level
     map.StartsWithShotgun = startingPower.Equals("Shotgun", StringComparison.OrdinalIgnoreCase);
     map.StartsWithToiletPaper = startingPower.Equals("ToiletPaper", StringComparison.OrdinalIgnoreCase);
     map.StartsWithChainWhip = startingPower.Equals("ChainWhip", StringComparison.OrdinalIgnoreCase);
+    map.StartsGrown = !startingPower.Equals("None", StringComparison.OrdinalIgnoreCase);
     map.IsSpeedRun = speedRun;
     int starts = 0, goals = 0;
 
@@ -239,15 +236,15 @@ public sealed class Level
     return map;
   }
 
-  public char Tile(int x, int y) => x < 0 || x >= Width || y < 0 || y >= Height ? '.' : _tiles[x, y];
-
-  public bool Solid(int x, int y) => x < 0 || x >= Width || y < 0 || "#B?MFQWLPpX~".Contains(Tile(x, y));
-
   public void Clear(int x, int y)
   {
     if (Inside(x, y))
       _tiles[x, y] = '.';
   }
+
+  public bool Solid(int x, int y) => x < 0 || x >= Width || y < 0 || "#B?MFQWLPpX~".Contains(Tile(x, y));
+
+  public char Tile(int x, int y) => x < 0 || x >= Width || y < 0 || y >= Height ? '.' : _tiles[x, y];
 
   public void UseBlock(int x, int y)
   {

@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.IO;
 using System.Linq;
@@ -90,7 +93,7 @@ public sealed class BossDodgeTests : GameTestBase
   }
 
   [TestMethod]
-  public void EmoGauntletIsLongerHasMiddleEnemiesAndNoWeaponPickups()
+  public void EmoGauntletHasWhipAfterGrowthAndKeepsItsMiddleEnemies()
   {
     string path = Path.Combine(AppContext.BaseDirectory, "Levels", "03-06-emo-kid-boss.txt");
     var level = Level.Load(path);
@@ -98,7 +101,12 @@ public sealed class BossDodgeTests : GameTestBase
     Assert.IsFalse(level.StartsWithShotgun);
     for (int y = 0; y < level.Height; y++)
       for (int x = 0; x < level.Width; x++)
-        Assert.IsFalse("FQW".Contains(level.Tile(x, y)), "The gauntlet must not supply weapon power-ups.");
+        Assert.IsFalse("FQ".Contains(level.Tile(x, y)), "The gauntlet supplies a whip rather than guns.");
+
+    Assert.AreEqual('M', level.Tile(18, 16));
+    Assert.AreEqual('W', level.Tile(24, 16));
+    Assert.AreEqual(1, Enumerable.Range(0, level.Width).Sum(x =>
+      Enumerable.Range(0, level.Height).Count(y => level.Tile(x, y) == 'W')));
 
     int middleEnemies = level.FlySpawns.Concat(level.WormSpawns).Concat(level.BluePunkSpawns).Concat(level.PurplePunkSpawns)
       .Count(spawn => spawn.X >= 40 && spawn.X < 180);

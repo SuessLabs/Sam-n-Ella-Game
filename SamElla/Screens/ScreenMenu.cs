@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 namespace SamElla.Screens;
 
 internal enum MenuAction
@@ -11,8 +14,6 @@ internal enum MenuAction
 internal sealed class ScreenMenu(bool includeLeaderboard = false)
 {
   public int SelectedIndex { get; private set; }
-
-  public void Reset() => SelectedIndex = 0;
 
   public MenuAction HandleInput(IReadOnlyList<int> keyPresses, bool windowActive)
   {
@@ -32,4 +33,6 @@ internal sealed class ScreenMenu(bool includeLeaderboard = false)
 
     return MenuAction.None;
   }
+
+  public void Reset() => SelectedIndex = 0;
 }

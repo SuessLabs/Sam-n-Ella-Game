@@ -3,13 +3,13 @@
 > In the words of Ivan Drago,\
 > &nbsp; &nbsp;"_If he dies, he dies._"
 
-![](Docs/Sam-and-Ella.png)
+![](Docs/Promo-Game-Banner.png)
 
-This aint ya mamma's side scroller. Sam n' Ella (_previously, NetMan_) is a pixel-art platformer with a native game window and editable Sprites, Text levels, and really bad uncle quotes. Written 100% in C# and not forgiving like modern "Mario" games. _Saves? NO! Surprises? YES!_
+This aint ya mamma's side scroller. Sam n' Ella is a pixel-art platformer with a native game window and editable Sprites, Text levels, and really bad uncle quotes. It's an unfogiving, 16-bit, and old-school unlike modern "Plumber" games. _Saves? NO! Surprises? YES!_
 
 ![](screen-shot.png)
 
-![Player collecting an extra heart and exploding](Docs/Player-Explosion.gif)
+![Player collecting an extra heart and exploding](Docs/Promo-Player-Explosion.gif)
 
 ![Graveyard Shift](Docs/Level-Graveyard.png)
 
@@ -130,6 +130,12 @@ release. Retrying a failed run reuses its original versioned commit, resumes
 an unfinished draft, and leaves an already published prerelease untouched.
 Existing tags pointing at another commit are rejected rather than moved.
 
+Both prereleases and stable releases use GitHub's **Generate Release Notes**
+feature (`gh release create --generate-notes`). The triggering PR, version, and
+tested commit appear above the generated notes. Notes are generated when the
+draft is created and preserved when a failed upload is retried. Already published
+releases are left unchanged.
+
 Merging into `master` runs the same build, tests, and packaging against the
 exact master merge commit, then publishes a separate stable release marked
 **Latest**. It does not increment the version again. Its tag has no `-pre`
@@ -211,6 +217,14 @@ defaults are removed. The existing `--levels <directory>` override still works.
 ## Hubmle Beginnings
 
 NetMan started out as a side-scrolling DOS pixle art game. The orginal code can be found in the Legacy folder [NetMan-0.1](Legacy/NetMan-0.1/README.md) which preserves the original console version.
+
+## Android and iOS
+
+`SamElla.Mobile` adds a .NET MAUI mobile host with landscape touch controls,
+scaled pixel graphics, audio, offline levels, and pause/resume handling.
+Windows retains its existing desktop executable and Velopack installer.
+See [mobile build and deployment instructions](Docs/mobile.md) for Android APKs,
+iOS/Mac requirements, controls, and validation.
 
 ## Developer Notes
 

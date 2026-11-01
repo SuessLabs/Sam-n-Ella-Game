@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System.Globalization;
 
 namespace SamElla.Audio;
@@ -10,20 +13,21 @@ internal sealed class AudioSettings
   private int _musicVolume = DefaultMusicVolume;
   private int _soundEffectsVolume = DefaultSoundEffectsVolume;
 
+  public bool MusicEnabled { get; set; } = true;
+
   public int MusicVolume
   {
     get => _musicVolume;
     set => _musicVolume = Math.Clamp(value, 0, 100);
   }
 
+  public bool SoundEffectsEnabled { get; set; } = true;
+
   public int SoundEffectsVolume
   {
     get => _soundEffectsVolume;
     set => _soundEffectsVolume = Math.Clamp(value, 0, 100);
   }
-
-  public bool MusicEnabled { get; set; } = true;
-  public bool SoundEffectsEnabled { get; set; } = true;
 
   public static AudioSettings Load(string path)
   {
@@ -57,7 +61,6 @@ internal sealed class AudioSettings
         }
       }
     }
-
     catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
     {
       // Missing or unavailable preferences fall back to audible defaults.
@@ -73,7 +76,6 @@ internal sealed class AudioSettings
       Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
       File.WriteAllLines(path, ToLines());
     }
-
     catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
     {
       // Preferences still apply to this session if the file cannot be written.

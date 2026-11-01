@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using SamElla.Actors;
 using SamElla.Items;
 using SamElla.Screens;
@@ -14,14 +17,18 @@ internal sealed class PixelRenderer
   private const int HeaderHeight = 28;
   private const uint Ink = 0xFF17263F;
   private const uint White = 0xFFF6F4DF;
+
   private static readonly string VersionLabel = "v" + System.Reflection.CustomAttributeExtensions
-    .GetCustomAttribute<System.Reflection.AssemblyFileVersionAttribute>(typeof(PixelRenderer).Assembly)!.Version;
+    .GetCustomAttribute<System.Reflection.AssemblyFileVersionAttribute>(System.Reflection.Assembly.GetEntryAssembly() ?? typeof(PixelRenderer).Assembly)!.Version;
+
   private readonly Dictionary<string, Sprite> _sprites = [];
+  private readonly bool _touchControls;
   private double _animationTime;
   private bool _facingLeft;
 
-  public PixelRenderer(string assetsPath)
+  public PixelRenderer(string assetsPath, bool touchControls = false)
   {
+    _touchControls = touchControls;
     var palette = Sprite.LoadPalette(Path.Combine(assetsPath, "palette.txt"));
 
     foreach (string name in new[]
@@ -155,294 +162,11 @@ internal sealed class PixelRenderer
 
   public PixelBuffer Frame { get; } = new(Width, Height);
 
-  public void DrawTitle(TitleScreen title, string updateStatus = "")
-  {
-    DrawBackground((int)(title.Elapsed * 10) % (Width * 4));
-    Frame.OverlayBlack(100);
-    DrawTitleText(updateStatus, 12, White, 1);
-    DrawTitleText("Sam n' Ella", 34, Gold, 5, shadow: true);
-    if (title.KonamiCodeEnabled)
-      DrawTitleText("KONAMI CODE ACTIVATED - 30 LIVES", 72, Gold, 1);
-    DrawTitleText("PLAYER SELECT", 86, White, 2);
-
-    int animationFrame = (int)(title.Elapsed * 6) % 2 + 1;
-    foreach (PlayerCharacter character in Enum.GetValues<PlayerCharacter>())
-    {
-      int left = character == PlayerCharacter.Sam ? 76 : 202;
-      bool selected = title.SelectedCharacter == character;
-      Frame.Fill(left, 97, 106, 69, selected ? Gold : 0xFF527787);
-      Frame.Fill(left + 2, 99, 102, 65, Ink);
-      Frame.Draw(_sprites[PlayerSprite(character, $"player-large-run-{animationFrame}")], left + 45, 108);
-      string name = character.ToString().ToUpperInvariant();
-      PixelFont.Draw(Frame, name, left + (106 - ((name.Length * 4) - 1)) / 2, 149, selected ? Gold : White);
-      if (selected)
-        PixelFont.Draw(Frame, ">", left + 10, 126, Gold);
-    }
-
-    DrawTitleText("LEFT/RIGHT PLAYER  UP/DOWN MENU  ENTER SELECT", 173, White, 1);
-
-    long ticks = (long)(title.Elapsed * 60);
-    DrawCreditsRunner($"player-run-{animationFrame}", ticks, 0, 38, false, 224);
-    DrawCreditsRunner($"ella-run-{animationFrame}", ticks, 215, 38, false, 224);
-    DrawCreditsRunner($"toaster-cat-run-{animationFrame}", ticks, 140, -45, false, 224);
-    DrawCreditsRunner((int)(title.Elapsed * 4) % 2 == 0 ? "enemy-idle" : "enemy-walk", ticks, 290, -24, false, 224);
-    DrawCreditsRunner($"zombie-walk-{(int)(title.Elapsed * 3) % 2 + 1}", ticks, 380, -12, false, 224);
-    DrawCreditsRunner($"dog-walk-{animationFrame}", ticks, 110, -28, false, 224);
-    DrawMenuChoice("START GAME", 184, title.SelectedMenuIndex == 0);
-    DrawMenuChoice("SETTINGS", 196, title.SelectedMenuIndex == 1);
-    DrawMenuChoice("TOP 10", 208, title.SelectedMenuIndex == 2);
-    Frame.Fill(0, 224, Width, 2, Gold);
-    Frame.Fill(0, 226, Width, 14, Ink);
-
-    PixelFont.Draw(Frame, VersionLabel, 6, Height - 9, White, preserveCase: true);
-
-    const string Copyright = "Â© 2026 XENO INNOVATIONS, INC.";
-    PixelFont.Draw(Frame, Copyright, Width - (Copyright.Length * 4) - 5, Height - 9, White);
-  }
-
-  private void DrawTitleText(string text, int y, uint color, int scale, bool shadow = false)
-  {
-    int x = (Width - (((text.Length * 4) - 1) * scale)) / 2;
-    if (shadow)
-      PixelFont.Draw(Frame, text, x + 2, y + 3, Ink, scale);
-
-    PixelFont.Draw(Frame, text, x, y, color, scale);
-  }
-
-  private void DrawMenuChoice(string text, int y, bool selected)
-  {
-    DrawTitleText(selected ? $"> {text} <" : text, y, selected ? Gold : White, 1);
-  }
-
-  public void DrawSettings(SettingsScreen screen)
-  {
-    Frame.OverlayBlack(80);
-    Frame.FillTranslucent(24, 24, Width - 48, 214, Ink, 225);
-    Frame.FillTranslucent(26, 28, Width - 52, 32, Ink, 210);
-    Frame.Fill(24, 24, Width - 48, 1, Gold);
-    Frame.Fill(24, 237, Width - 48, 1, 0xFF527787);
-    DrawTitleText("SETTINGS", 36, Gold, 3);
-
-    DrawAudioToggle("BACKGROUND MUSIC", 68, screen.Audio.MusicEnabled, screen.SelectedIndex == 0);
-    DrawVolumeSlider("MUSIC VOLUME", 99, screen.Audio.MusicVolume, screen.SelectedIndex == 1);
-    DrawAudioToggle("SOUND FX", 124, screen.Audio.SoundEffectsEnabled, screen.SelectedIndex == 2);
-    DrawVolumeSlider("SOUND FX VOLUME", 150, screen.Audio.SoundEffectsVolume, screen.SelectedIndex == 3);
-    DrawAudioToggle("OPT-IN PRE-RELEASE", 169, screen.Updates.IncludePrereleases, screen.SelectedIndex == 4);
-    PixelFont.Draw(Frame, "(EXPERIMENTAL)", 52, 183, screen.SelectedIndex == 4 ? Gold : White);
-    DrawTitleText("UPDATE SETTING APPLIES NEXT LAUNCH", 197, White, 1);
-
-    Frame.FillTranslucent(144, 207, 96, 17, Ink, 180);
-    if (screen.SelectedIndex == 5)
-      Frame.FillTranslucent(144, 207, 96, 17, Gold, 45);
-
-    DrawTitleText(screen.SelectedIndex == 5 ? "> BACK <" : "BACK", 212,
-      screen.SelectedIndex == 5 ? Gold : White, 1);
-
-    DrawTitleText("ARROWS ADJUST  ENTER/SPACE TOGGLE  ESC BACK", 230, White, 1);
-  }
-
-  private void DrawAudioToggle(string label, int y, bool enabled, bool selected)
-  {
-    if (selected)
-      Frame.FillTranslucent(36, y - 5, Width - 72, 24, Gold, 40);
-
-    PixelFont.Draw(Frame, selected ? ">" : " ", 40, y + 3, Gold);
-    PixelFont.Draw(Frame, label, 52, y + 3, selected ? Gold : White);
-    const int SwitchX = 272;
-    Frame.Fill(SwitchX, y - 1, 64, 16, enabled ? 0xFF3A806C : 0xFF535D70);
-    Frame.Fill(SwitchX + (enabled ? 47 : 2), y + 1, 15, 12, enabled ? White : 0xFFAFB4BF);
-    PixelFont.Draw(Frame, enabled ? "ON" : "OFF", SwitchX + (enabled ? 10 : 27), y + 4, White);
-  }
-
-  private void DrawVolumeSlider(string label, int y, int volume, bool selected)
-  {
-    if (selected)
-      Frame.FillTranslucent(36, y - 5, Width - 72, 24, Gold, 40);
-
-    uint color = selected ? Gold : White;
-    PixelFont.Draw(Frame, selected ? ">" : " ", 40, y, Gold);
-    PixelFont.Draw(Frame, label, 52, y, color);
-    PixelFont.Draw(Frame, $"{volume}%", 208, y, color);
-    Frame.Fill(244, y + 2, 92, 3, 0xFF525D70);
-    Frame.Fill(244, y + 2, volume * 92 / 100, 3, Gold);
-    Frame.Fill(244 + (volume * 85 / 100), y - 1, 7, 9, color);
-  }
-
-  private static string PlayerSprite(PlayerCharacter character, string name) =>
-    character == PlayerCharacter.Ella ? name.Replace("player-", "ella-", StringComparison.Ordinal) : name;
-
-  public void DrawLevelSelect(LevelSelectScreen screen)
-  {
-    Frame.Clear(Ink);
-    DrawTitleText("LEVEL SELECT", 12, Gold, 3);
-    PixelFont.Draw(Frame, "NO.", 24, 44, Gold);
-    PixelFont.Draw(Frame, "NAME", 64, 44, Gold);
-    PixelFont.Draw(Frame, "THEME", 300, 44, Gold);
-    Frame.Fill(10, 54, Width - 20, 1, Gold);
-    int first = screen.Page * LevelSelectScreen.PageSize;
-
-    for (int row = 0; row < LevelSelectScreen.PageSize && first + row < screen.Levels.Count; row++)
-    {
-      int index = first + row;
-      var level = screen.Levels[index];
-      int y = 64 + row * 16;
-      bool selected = index == screen.SelectedIndex;
-
-      if (selected)
-      {
-        Frame.Fill(10, y - 4, Width - 20, 13, 0xFF355575);
-        PixelFont.Draw(Frame, ">", 13, y, Gold);
-      }
-
-      uint color = selected ? Gold : White;
-      PixelFont.Draw(Frame, level.DisplayNumber, 24, y, color);
-      PixelFont.Draw(Frame, level.Name, 64, y, color);
-      PixelFont.Draw(Frame, level.Theme == BackgroundTheme.Underworld ? "SEWAGE" : level.Theme == BackgroundTheme.Night ? "NIGHTTIME" : "DAYTIME", 300, y, color);
-    }
-
-    DrawTitleText($"PAGE {screen.Page + 1}/{screen.PageCount}  LEVELS {screen.Levels.Count}", 196, Gold, 1);
-    DrawTitleText("UP/DOWN SELECT  LEFT/RIGHT OR PGUP/PGDN PAGE", 213, White, 1);
-    DrawTitleText("ENTER PLAY  ESC BACK", 227, White, 1);
-  }
-
-  public void DrawLevelStart(LevelStartScreen screen)
-  {
-    Frame.Clear(Ink);
-    Frame.Fill(12, 18, Width - 24, 1, Gold);
-    DrawTitleText($"LEVEL {screen.LevelLabel}", 32, Gold, 4);
-    DrawWrappedCentered(screen.LevelName, 66, White, maxLines: 2);
-    string pose = screen.IsLarge ? "player-large-idle" : "player-idle";
-    var player = _sprites[PlayerSprite(screen.Character, pose)];
-    Frame.Draw(player, 148, 142 - player.Height);
-    PixelFont.Draw(Frame, $"LIVES {screen.Lives}", 180, 125, White, 2);
-    DrawTitleText("UNCLE QUOTE", 155, Gold, 1);
-    DrawWrappedCentered(screen.Quote, 170, White);
-    Frame.Fill(12, 218, Width - 24, 1, 0xFF355575);
-    DrawTitleText("PRESS ANY KEY TO BEGIN", 227, Gold, 1);
-  }
-
-  public void DrawLeaderboard(LeaderboardScreen screen)
-  {
-    Frame.Clear(screen.Context == LeaderboardContext.GameOver ? 0xFF781C29 : Ink);
-    Frame.Fill(12, 10, Width - 24, 1, Gold);
-    if (screen.IsEnteringInitials)
-    {
-      DrawTitleText("TOP 10 SCORE!", 24, Gold, 3);
-      DrawTitleText($"POINTS {screen.Score}  RANK {screen.Board.RankFor(screen.Score)}", 54, White, 2);
-      DrawTitleText(screen.Context == LeaderboardContext.Victory ? "ALL LEVELS COMPLETE" : "GAME OVER", 78, White, 1);
-      if (screen.Context == LeaderboardContext.GameOver)
-        Frame.Draw(_sprites["tombstone"], (Width / 2) - 48, 66);
-
-      for (int index = 0; index < 3; index++)
-      {
-        int left = 130 + (index * 44);
-        bool selected = index == screen.SelectedInitialIndex;
-        Frame.Fill(left, 101, 36, 42, selected ? Gold : 0xFF527787);
-        Frame.Fill(left + 2, 103, 32, 38, Ink);
-        string letter = index < screen.Initials.Length ? screen.Initials[index].ToString() : "-";
-        PixelFont.Draw(Frame, letter, left + 12, 112, selected ? Gold : White, 4);
-        if (selected && letter == " ")
-          PixelFont.Draw(Frame, "SPACE", left + 8, 147, Gold);
-      }
-
-      DrawTitleText("A-Z / 0-9 / SPACE", 163, Gold, 2);
-      DrawTitleText("UP/DOWN: CHARACTER", 184, White, 1);
-      DrawTitleText("LEFT/RIGHT: POSITION", 195, White, 1);
-      DrawTitleText("ENTER: ACCEPT", 211, Gold, 1);
-      return;
-    }
-
-    DrawTitleText("TOP 10", 18, Gold, 3);
-    PixelFont.Draw(Frame, "RANK", 32, 45, White);
-    PixelFont.Draw(Frame, "NAME", 80, 45, White);
-    PixelFont.Draw(Frame, "POINTS", 152, 45, White);
-    PixelFont.Draw(Frame, "DATE", 268, 45, White);
-    for (int index = 0; index < Leaderboard.Capacity; index++)
-    {
-      int top = 61 + (index * 14);
-      bool highlighted = index + 1 == screen.SubmittedRank;
-      if (highlighted)
-        Frame.FillTranslucent(24, top - 2, Width - 48, 13, Gold, 45);
-
-      uint color = highlighted ? Gold : White;
-      PixelFont.Draw(Frame, (index + 1).ToString("00"), 36, top + 2, color);
-      if (index < screen.Board.Entries.Count)
-      {
-        var entry = screen.Board.Entries[index];
-        PixelFont.Draw(Frame, entry.Initials, 80, top, color, 2);
-        PixelFont.Draw(Frame, entry.Score.ToString(System.Globalization.CultureInfo.InvariantCulture), 152, top + 2, color);
-        PixelFont.Draw(Frame, entry.RecordedAt.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), 256, top + 2, color);
-      }
-      else
-        PixelFont.Draw(Frame, "---", 80, top + 2, 0xFF838B98);
-    }
-
-    Frame.Fill(12, 210, Width - 24, 1, Gold);
-    string prompt = screen.Context == LeaderboardContext.Victory ? "PRESS ENTER FOR CREDITS" :
-      screen.Context == LeaderboardContext.GameOver ? "PRESS ENTER TO START OVER" : "ENTER / ESC BACK";
-    DrawTitleText(prompt, 224, Gold, 1);
-  }
-
-  private void DrawGameOver(Game game)
-  {
-    Frame.Clear(0xFF781C29);
-    Frame.Fill(12, 12, Width - 24, 1, 0xFFFF6B6B);
-    DrawTitleText("GAME OVER", 24, White, 4);
-    DrawTitleText("OUT OF LIVES. OUT OF EXCUSES.", 54, Gold, 1);
-
-    const int Scale = 3;
-    const int StoneY = 72;
-    var stone = _sprites["tombstone"];
-    int stoneX = (Width - (stone.Width * Scale)) / 2;
-    Frame.Fill(stoneX - 8, StoneY + (stone.Height * Scale), (stone.Width * Scale) + 16, 3, 0xFF43101B);
-
-    for (int y = 0; y < stone.Height; y++)
-    {
-      for (int x = 0; x < stone.Width; x++)
-      {
-        uint color = stone.Pixel(x, y);
-        if ((color >> 24) != 0)
-          Frame.Fill(stoneX + (x * Scale), StoneY + (y * Scale), Scale, Scale, color);
-      }
-    }
-
-    DrawTitleText("YOU DIED", 151, White, 2);
-    DrawWrappedCentered(game.GameOverQuote, 171, White, maxLines: 2);
-    DrawTitleText($"LEVEL {game.LevelLabel}  SCORE {game.Score:000000}  DEATHS {game.TotalDeaths}", 202, White, 1);
-
-    Frame.Fill(12, 215, Width - 24, 1, 0xFFFF6B6B);
-    DrawTitleText("PRESS ENTER TO START OVER", 226, Gold, 1);
-  }
-
-  private void DrawWrappedCentered(string text, int y, uint color, int maxLines = 3)
-  {
-    const int MaxCharacters = 42;
-    string remaining = text.Trim();
-
-    for (int index = 0; index < maxLines && remaining.Length > 0; index++)
-    {
-      int length = Math.Min(MaxCharacters, remaining.Length);
-
-      if (length < remaining.Length)
-      {
-        int space = remaining.LastIndexOf(' ', length - 1, length);
-        if (space > 0)
-          length = space;
-      }
-
-      string line = remaining[..length].Trim();
-      remaining = remaining[length..].TrimStart();
-      if (index == maxLines - 1 && remaining.Length > 0)
-        line = line[..Math.Min(line.Length, MaxCharacters - 3)] + "...";
-      DrawTitleText(line, y + (index * 12), color, 2);
-    }
-  }
-
-  public void Draw(Game game, int direction, double elapsed = Game.Step, int pauseSelection = 0)
+  public void Draw(Game game, int direction, double elapsed = Game.Step, int pauseSelection = 0, bool deathContinueReady = true)
   {
     if (game.Lives == 0 && game.AwaitingRestart)
     {
-      DrawGameOver(game);
+      DrawGameOver(game, deathContinueReady);
       return;
     }
 
@@ -507,7 +231,7 @@ internal sealed class PixelRenderer
           int signX = x * TileSize - cameraX - 8;
           int signY = HeaderHeight + y * TileSize - cameraY - 20;
           Frame.Fill(signX - 2, signY - 2, 51, 11, Ink);
-          PixelFont.Draw(Frame, "DOWN/S +5", signX, signY, Gold);
+          PixelFont.Draw(Frame, _touchControls ? "DOWN +5" : "DOWN/S +5", signX, signY, Gold);
         }
 
         if (name is not null)
@@ -676,15 +400,17 @@ internal sealed class PixelRenderer
           cameraX, cameraY, _facingLeft, true, game.PlayerHeight);
     }
     else if (game.IsDying)
-      DrawActor(_sprites[PlayerSprite(game.Character, "player-splatter")], game.X, game.Y, cameraX, cameraY, _facingLeft, true);
+      DrawPlayerDeath(game, cameraX, cameraY);
     else if (game.PipeReliefTicksRemaining > 0)
     {
-      DrawActor(_sprites[PlayerSprite(game.Character, "player-idle")], game.X, game.Y,
-        cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);
-      int puffX = (int)Math.Round((game.X + Game.BodyWidth) * TileSize) - cameraX;
+      bool facingLeft = game.FacingDirection < 0;
+      int puffX = (int)Math.Round((game.X + (facingLeft ? Game.BodyWidth : 0)) * TileSize) - cameraX;
       int puffY = HeaderHeight + (int)Math.Round((game.Y + game.PlayerHeight - 0.25) * TileSize) - cameraY;
-      Frame.Fill(puffX + game.PipeReliefTicksRemaining % 5, puffY - 3, 5, 3, 0xFF754A44);
-      Frame.Fill(puffX + 4, puffY - 6, 3, 3, 0xFF82BD58);
+      int drift = 3 + (Game.PipeReliefDurationTicks - game.PipeReliefTicksRemaining) % 5;
+      Frame.Fill(puffX + (facingLeft ? drift : -drift - 5), puffY - 3, 5, 3, 0xFF754A44);
+      Frame.Fill(puffX + (facingLeft ? 7 : -10), puffY - 6, 3, 3, 0xFF82BD58);
+      DrawActor(_sprites[PlayerSprite(game.Character, game.IsLarge ? "player-large-idle" : "player-idle")], game.X, game.Y,
+        cameraX, cameraY, facingLeft, bodyHeight: game.PlayerHeight);
     }
     else if ((game.DamageTicksRemaining / 5) % 2 == 0)
       DrawActor(_sprites[PlayerSprite(game.Character, playerFrame)], game.X, game.Y, cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);
@@ -823,7 +549,9 @@ internal sealed class PixelRenderer
     if (game.IsDying)
     {
       DrawDeathMessage(game.DeathQuote);
-      string Prompt = game.Lives == 0 ? "PRESS ENTER TO START OVER" : "PRESS ANY KEY TO CONTINUE";
+      string Prompt = !game.AwaitingRestart || !deathContinueReady ? "PLEASE WAIT..."
+        : _touchControls ? "JUMP OR START TO CONTINUE"
+        : game.Lives == 0 ? "PRESS ENTER TO START OVER" : "PRESS ANY KEY TO CONTINUE";
       int promptScale = game.AwaitingRestart ? 2 : 1;
       int promptY = game.AwaitingRestart ? 112 : Height - 9;
       if (!game.AwaitingRestart)
@@ -846,43 +574,343 @@ internal sealed class PixelRenderer
     }
   }
 
-  private void DrawPauseMenu(int selection)
+  public void DrawLeaderboard(LeaderboardScreen screen)
   {
-    Frame.FillTranslucent(70, 76, 244, 104, Ink, 230);
-    Frame.Fill(72, 78, 240, 1, Gold);
-    DrawTitleText("PAUSED", 89, Gold, 2);
-    DrawMenuChoice("RESUME GAME", 116, selection == 0);
-    DrawMenuChoice("SETTINGS", 135, selection == 1);
-    DrawTitleText("UP/DOWN SELECT  ENTER CONFIRM", 161, White, 1);
-  }
-
-  private void DrawWeaponQuote(string quote, string title)
-  {
-    const int MaxCharacters = 42;
-    var lines = new List<string>();
-    string remaining = quote.Trim();
-    while (remaining.Length > 0 && lines.Count < 3)
+    Frame.Clear(screen.Context == LeaderboardContext.GameOver ? 0xFF781C29 : Ink);
+    Frame.Fill(12, 10, Width - 24, 1, Gold);
+    if (screen.IsEnteringInitials)
     {
-      int length = Math.Min(MaxCharacters, remaining.Length);
-      if (length < remaining.Length)
+      DrawTitleText("TOP 10 SCORE!", 24, Gold, 3);
+      DrawTitleText($"POINTS {screen.Score}  RANK {screen.Board.RankFor(screen.Score)}", 54, White, 2);
+      DrawTitleText(screen.Context == LeaderboardContext.Victory ? "ALL LEVELS COMPLETE" : "GAME OVER", 78, White, 1);
+      if (screen.Context == LeaderboardContext.GameOver)
+        Frame.Draw(_sprites["tombstone"], (Width / 2) - 48, 66);
+
+      for (int index = 0; index < 3; index++)
       {
-        int space = remaining.LastIndexOf(' ', length - 1, length);
-        if (space > 0)
-          length = space;
+        int left = 130 + (index * 44);
+        bool selected = index == screen.SelectedInitialIndex;
+        Frame.Fill(left, 101, 36, 42, selected ? Gold : 0xFF527787);
+        Frame.Fill(left + 2, 103, 32, 38, Ink);
+        string letter = index < screen.Initials.Length ? screen.Initials[index].ToString() : "-";
+        PixelFont.Draw(Frame, letter, left + 12, 112, selected ? Gold : White, 4);
+        if (selected && letter == " ")
+          PixelFont.Draw(Frame, "SPACE", left + 8, 147, Gold);
       }
 
-      string line = remaining[..length].Trim();
-      remaining = remaining[length..].TrimStart();
-      if (lines.Count == 2 && remaining.Length > 0)
-        line = line[..Math.Min(line.Length, MaxCharacters - 3)] + "...";
-      lines.Add(line);
+      DrawTitleText("A-Z / 0-9 / SPACE", 163, Gold, 2);
+      DrawTitleText("UP/DOWN: CHARACTER", 184, White, 1);
+      DrawTitleText("LEFT/RIGHT: POSITION", 195, White, 1);
+      string accept = !_touchControls ? "ENTER: ACCEPT" : screen.SelectedInitialIndex < 2
+        ? "JUMP: NEXT  START: ACCEPT" : "JUMP / START: ACCEPT";
+      DrawTitleText(accept, 211, Gold, 1);
+      if (_touchControls)
+        DrawTitleText("ATTACK: CANCEL", 225, White, 1);
+
+      return;
     }
 
-    Frame.Fill(12, 42, Width - 24, 22 + (lines.Count * 12), Ink);
-    Frame.Fill(12, 42, Width - 24, 1, Gold);
-    DrawTitleText(title, 48, Gold, 1);
-    for (int index = 0; index < lines.Count; index++)
-      DrawTitleText(lines[index], 60 + (index * 12), White, 2);
+    DrawTitleText("TOP 10", 18, Gold, 3);
+    PixelFont.Draw(Frame, "RANK", 32, 45, White);
+    PixelFont.Draw(Frame, "NAME", 80, 45, White);
+    PixelFont.Draw(Frame, "POINTS", 152, 45, White);
+    PixelFont.Draw(Frame, "DATE", 268, 45, White);
+    for (int index = 0; index < Leaderboard.Capacity; index++)
+    {
+      int top = 61 + (index * 14);
+      bool highlighted = index + 1 == screen.SubmittedRank;
+      if (highlighted)
+        Frame.FillTranslucent(24, top - 2, Width - 48, 13, Gold, 45);
+
+      uint color = highlighted ? Gold : White;
+      PixelFont.Draw(Frame, (index + 1).ToString("00"), 36, top + 2, color);
+      if (index < screen.Board.Entries.Count)
+      {
+        var entry = screen.Board.Entries[index];
+        PixelFont.Draw(Frame, entry.Initials, 80, top, color, 2);
+        PixelFont.Draw(Frame, entry.Score.ToString(System.Globalization.CultureInfo.InvariantCulture), 152, top + 2, color);
+        PixelFont.Draw(Frame, entry.RecordedAt.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), 256, top + 2, color);
+      }
+      else
+        PixelFont.Draw(Frame, "---", 80, top + 2, 0xFF838B98);
+    }
+
+    Frame.Fill(12, 210, Width - 24, 1, Gold);
+    string prompt = screen.Context == LeaderboardContext.Victory ? (_touchControls ? "PRESS JUMP FOR CREDITS" : "PRESS ENTER FOR CREDITS") :
+      screen.Context == LeaderboardContext.GameOver ? (_touchControls ? "PRESS JUMP TO START OVER" : "PRESS ENTER TO START OVER") : (_touchControls ? "JUMP ACCEPT  ATTACK CANCEL" : "ENTER / ESC BACK");
+    DrawTitleText(prompt, 224, Gold, 1);
+  }
+
+  public void DrawLevelSelect(LevelSelectScreen screen)
+  {
+    Frame.Clear(Ink);
+    DrawTitleText("LEVEL SELECT", 12, Gold, 3);
+    PixelFont.Draw(Frame, "NO.", 24, 44, Gold);
+    PixelFont.Draw(Frame, "NAME", 64, 44, Gold);
+    PixelFont.Draw(Frame, "THEME", 300, 44, Gold);
+    Frame.Fill(10, 54, Width - 20, 1, Gold);
+    int first = screen.Page * LevelSelectScreen.PageSize;
+
+    for (int row = 0; row < LevelSelectScreen.PageSize && first + row < screen.Levels.Count; row++)
+    {
+      int index = first + row;
+      var level = screen.Levels[index];
+      int y = 64 + row * 16;
+      bool selected = index == screen.SelectedIndex;
+
+      if (selected)
+      {
+        Frame.Fill(10, y - 4, Width - 20, 13, 0xFF355575);
+        PixelFont.Draw(Frame, ">", 13, y, Gold);
+      }
+
+      uint color = selected ? Gold : White;
+      PixelFont.Draw(Frame, level.DisplayNumber, 24, y, color);
+      PixelFont.Draw(Frame, level.Name, 64, y, color);
+      PixelFont.Draw(Frame, level.Theme == BackgroundTheme.Underworld ? "SEWAGE" : level.Theme == BackgroundTheme.Night ? "NIGHTTIME" : "DAYTIME", 300, y, color);
+    }
+
+    DrawTitleText($"PAGE {screen.Page + 1}/{screen.PageCount}  LEVELS {screen.Levels.Count}", 196, Gold, 1);
+    DrawTitleText(_touchControls ? "UP/DOWN SELECT  LEFT/RIGHT PAGE" : "UP/DOWN SELECT  LEFT/RIGHT OR PGUP/PGDN PAGE", 213, White, 1);
+    DrawTitleText(_touchControls ? "JUMP PLAY  ATTACK CANCEL" : "ENTER PLAY  ESC BACK", 227, White, 1);
+  }
+
+  public void DrawLevelStart(LevelStartScreen screen)
+  {
+    Frame.Clear(Ink);
+    Frame.Fill(12, 18, Width - 24, 1, Gold);
+    DrawTitleText($"LEVEL {screen.LevelLabel}", 32, Gold, 4);
+    DrawWrappedCentered(screen.LevelName, 66, White, maxLines: 2);
+    string pose = screen.IsLarge ? "player-large-idle" : "player-idle";
+    var player = _sprites[PlayerSprite(screen.Character, pose)];
+    Frame.Draw(player, 148, 142 - player.Height);
+    PixelFont.Draw(Frame, $"LIVES {screen.Lives}", 180, 125, White, 2);
+    DrawTitleText("UNCLE QUOTE", 155, Gold, 1);
+    DrawWrappedCentered(screen.Quote, 170, White);
+    Frame.Fill(12, 218, Width - 24, 1, 0xFF355575);
+    DrawTitleText(_touchControls ? "PRESS JUMP TO BEGIN" : "PRESS ANY KEY TO BEGIN", 227, Gold, 1);
+  }
+
+  public void DrawSettings(SettingsScreen screen)
+  {
+    Frame.OverlayBlack(80);
+    Frame.FillTranslucent(24, 24, Width - 48, 214, Ink, 225);
+    Frame.FillTranslucent(26, 28, Width - 52, 32, Ink, 210);
+    Frame.Fill(24, 24, Width - 48, 1, Gold);
+    Frame.Fill(24, 237, Width - 48, 1, 0xFF527787);
+    DrawTitleText("SETTINGS", 36, Gold, 3);
+
+    DrawAudioToggle("BACKGROUND MUSIC", 68, screen.Audio.MusicEnabled, screen.SelectedIndex == 0);
+    DrawVolumeSlider("MUSIC VOLUME", 99, screen.Audio.MusicVolume, screen.SelectedIndex == 1);
+    DrawAudioToggle("SOUND FX", 124, screen.Audio.SoundEffectsEnabled, screen.SelectedIndex == 2);
+    DrawVolumeSlider("SOUND FX VOLUME", 150, screen.Audio.SoundEffectsVolume, screen.SelectedIndex == 3);
+    if (screen.UpdatesSupported)
+    {
+      DrawAudioToggle("OPT-IN PRE-RELEASE", 169, screen.Updates.IncludePrereleases, screen.SelectedIndex == 4);
+      PixelFont.Draw(Frame, "(EXPERIMENTAL)", 52, 183, screen.SelectedIndex == 4 ? Gold : White);
+      DrawTitleText("UPDATE SETTING APPLIES NEXT LAUNCH", 197, White, 1);
+    }
+
+    Frame.FillTranslucent(144, 207, 96, 17, Ink, 180);
+    if (screen.SelectedIndex == screen.BackIndex)
+      Frame.FillTranslucent(144, 207, 96, 17, Gold, 45);
+
+    DrawTitleText(screen.SelectedIndex == screen.BackIndex ? "> BACK <" : "BACK", 212,
+      screen.SelectedIndex == screen.BackIndex ? Gold : White, 1);
+
+    DrawTitleText(_touchControls ? "ARROWS ADJUST  JUMP ACCEPT  ATTACK CANCEL" : "ARROWS ADJUST  ENTER/SPACE TOGGLE  ESC BACK", 230, White, 1);
+  }
+
+  public void DrawTitle(TitleScreen title, string updateStatus = "")
+  {
+    DrawBackground((int)(title.Elapsed * 10) % (Width * 4));
+    Frame.OverlayBlack(100);
+    DrawTitleText(updateStatus, 12, White, 1);
+    DrawTitleText("Sam n' Ella", 34, Gold, 5, shadow: true);
+    if (title.KonamiCodeEnabled)
+      DrawTitleText("KONAMI CODE ACTIVATED - 30 LIVES", 72, Gold, 1);
+    DrawTitleText("PLAYER SELECT", 86, White, 2);
+
+    int animationFrame = (int)(title.Elapsed * 6) % 2 + 1;
+    foreach (PlayerCharacter character in Enum.GetValues<PlayerCharacter>())
+    {
+      int left = character == PlayerCharacter.Sam ? 76 : 202;
+      bool selected = title.SelectedCharacter == character;
+      Frame.Fill(left, 97, 106, 69, selected ? Gold : 0xFF527787);
+      Frame.Fill(left + 2, 99, 102, 65, Ink);
+      Frame.Draw(_sprites[PlayerSprite(character, $"player-large-run-{animationFrame}")], left + 45, 108);
+      string name = character.ToString().ToUpperInvariant();
+      PixelFont.Draw(Frame, name, left + (106 - ((name.Length * 4) - 1)) / 2, 149, selected ? Gold : White);
+      if (selected)
+        PixelFont.Draw(Frame, ">", left + 10, 126, Gold);
+    }
+
+    DrawTitleText(_touchControls ? "LEFT/RIGHT PLAYER  SELECT MENU  JUMP ACCEPT" : "LEFT/RIGHT PLAYER  UP/DOWN MENU  ENTER SELECT", 173, White, 1);
+
+    long ticks = (long)(title.Elapsed * 60);
+    DrawCreditsRunner($"player-run-{animationFrame}", ticks, 0, 38, false, 224);
+    DrawCreditsRunner($"ella-run-{animationFrame}", ticks, 215, 38, false, 224);
+    DrawCreditsRunner($"toaster-cat-run-{animationFrame}", ticks, 140, -45, false, 224);
+    DrawCreditsRunner((int)(title.Elapsed * 4) % 2 == 0 ? "enemy-idle" : "enemy-walk", ticks, 290, -24, false, 224);
+    DrawCreditsRunner($"zombie-walk-{(int)(title.Elapsed * 3) % 2 + 1}", ticks, 380, -12, false, 224);
+    DrawCreditsRunner($"dog-walk-{animationFrame}", ticks, 110, -28, false, 224);
+    DrawMenuChoice("START GAME", 184, title.SelectedMenuIndex == 0);
+    DrawMenuChoice("SETTINGS", 196, title.SelectedMenuIndex == 1);
+    DrawMenuChoice("TOP 10", 208, title.SelectedMenuIndex == 2);
+    Frame.Fill(0, 224, Width, 2, Gold);
+    Frame.Fill(0, 226, Width, 14, Ink);
+
+    PixelFont.Draw(Frame, VersionLabel, 6, Height - 9, White, preserveCase: true);
+
+    const string Copyright = "Â© 2026 XENO INNOVATIONS, INC.";
+    PixelFont.Draw(Frame, Copyright, Width - (Copyright.Length * 4) - 5, Height - 9, White);
+  }
+
+  private static bool IsPipeRow(Level level, int left, int width, int y)
+  {
+    if (level.Tile(left - 1, y) == 'P' || level.Tile(left + width, y) == 'P')
+      return false;
+
+    for (int offset = 0; offset < width; offset++)
+    {
+      if (level.Tile(left + offset, y) != 'P')
+        return false;
+    }
+
+    return true;
+  }
+
+  private static string PipeSprite(Level level, int x, int y)
+  {
+    int left = x;
+    int right = x;
+
+    while (level.Tile(left - 1, y) == 'P')
+      left--;
+
+    while (level.Tile(right + 1, y) == 'P')
+      right++;
+
+    int width = right - left + 1;
+
+    if (width > 2)
+      return "pipe";
+
+    int top = y;
+    int bottom = y;
+
+    while (IsPipeRow(level, left, width, top - 1))
+      top--;
+
+    while (IsPipeRow(level, left, width, bottom + 1))
+      bottom++;
+
+    // Irregular groups retain the original artwork rather than mismatched pipe pieces.
+    for (int offset = 0; offset < width; offset++)
+    {
+      if (level.Tile(left + offset, top - 1) == 'P' || level.Tile(left + offset, bottom + 1) == 'P')
+        return "pipe";
+    }
+
+    if (top == bottom)
+      return "pipe";
+
+    string section = y == top ? "top" : y == bottom ? "bottom" : "body";
+
+    return width == 1
+      ? $"pipe-small-{section}"
+      : $"pipe-{section}-{(x == left ? "left" : "right")}";
+  }
+
+  private static string PlayerSprite(PlayerCharacter character, string name) =>
+    character == PlayerCharacter.Ella ? name.Replace("player-", "ella-", StringComparison.Ordinal) : name;
+
+  private static string SkinnyPipeSprite(Level level, int x, int y)
+  {
+    bool above = level.Tile(x, y - 1) == 'p';
+    bool below = level.Tile(x, y + 1) == 'p';
+
+    return (above, below) switch
+    {
+      (false, false) => "pipe",
+      (false, true) => "pipe-small-top",
+      (true, false) => "pipe-small-bottom",
+      _ => "pipe-small-body",
+    };
+  }
+
+  private void DrawActor(Sprite sprite, double x, double y, int cameraX, int cameraY, bool flip, bool keepInView = false, double bodyHeight = Game.BodyHeight)
+  {
+    int px = (int)Math.Round((x + (Game.BodyWidth / 2)) * TileSize) - (sprite.Width / 2) - cameraX;
+    int py = HeaderHeight + (int)Math.Round((y + bodyHeight) * TileSize) - sprite.Height - cameraY;
+
+    if (keepInView)
+    {
+      px = Math.Clamp(px, 0, Width - sprite.Width);
+      py = Math.Clamp(py, HeaderHeight, Height - FooterHeight - sprite.Height);
+    }
+
+    Frame.Draw(sprite, px, py, flip);
+  }
+
+  private void DrawAudioToggle(string label, int y, bool enabled, bool selected)
+  {
+    if (selected)
+      Frame.FillTranslucent(36, y - 5, Width - 72, 24, Gold, 40);
+
+    PixelFont.Draw(Frame, selected ? ">" : " ", 40, y + 3, Gold);
+    PixelFont.Draw(Frame, label, 52, y + 3, selected ? Gold : White);
+    const int SwitchX = 272;
+    Frame.Fill(SwitchX, y - 1, 64, 16, enabled ? 0xFF3A806C : 0xFF535D70);
+    Frame.Fill(SwitchX + (enabled ? 47 : 2), y + 1, 15, 12, enabled ? White : 0xFFAFB4BF);
+    PixelFont.Draw(Frame, enabled ? "ON" : "OFF", SwitchX + (enabled ? 10 : 27), y + 4, White);
+  }
+
+  private void DrawBackground(int cameraX, bool night = false)
+  {
+    for (int y = 0; y < Height; y++)
+    {
+      uint color = night
+        ? y < 70 ? 0xFF101B35 : y < 125 ? 0xFF1A2946 : 0xFF243A50
+        : y < 70 ? 0xFF608CC8 : y < 125 ? 0xFF79ADD7 : 0xFF9BCEE1;
+      Frame.Fill(0, y, Width, 1, color);
+    }
+
+    if (night)
+    {
+      for (int index = 0; index < 22; index++)
+      {
+        int x = ((index * 53) + 17) % Width;
+        int y = 34 + ((index * 29) % 66);
+        Frame.Fill(x, y, 1, 1, 0xFFBFD7E8);
+      }
+
+      Frame.Draw(_sprites["moon"], 295, 38);
+    }
+    else
+    {
+      Frame.Fill(301, 45, 20, 20, 0xFFFFDF8A);
+      Frame.Fill(297, 49, 28, 12, 0xFFFFDF8A);
+    }
+
+    for (int i = -1; i < 5; i++)
+    {
+      int x = (i * 112) - ((cameraX / 5) % 112);
+      int y = 55 + ((i & 1) * 17);
+      Frame.Fill(x + 8, y, 25, 6, night ? 0xFF2D405A : 0xFFDEEFF4);
+      Frame.Fill(x, y + 6, 47, 9, night ? 0xFF2D405A : 0xFFDEEFF4);
+      Frame.Fill(x + 5, y + 15, 35, 3, night ? 0xFF23344E : 0xFFB6DCEB);
+    }
+
+    for (int x = 0; x < Width; x++)
+    {
+      int far = Math.Abs(((x + (cameraX / 6)) % 180) - 90);
+      int near = Math.Abs(((x + (cameraX / 3) + 60) % 150) - 75);
+      int farTop = 110 + (far / 2);
+      int nearTop = 150 + (near / 2);
+      Frame.Fill(x, farTop, 1, Height - farTop, night ? 0xFF253854 : 0xFF679DA5);
+      Frame.Fill(x, nearTop, 1, Height - nearTop, night ? 0xFF1B3041 : 0xFF4A887D);
+    }
   }
 
   private void DrawCredits(Game game, EndCreditsScreen credits)
@@ -963,88 +991,36 @@ internal sealed class PixelRenderer
     }
   }
 
-  private static string SkinnyPipeSprite(Level level, int x, int y)
+  private void DrawGameOver(Game game, bool deathContinueReady)
   {
-    bool above = level.Tile(x, y - 1) == 'p';
-    bool below = level.Tile(x, y + 1) == 'p';
+    Frame.Clear(0xFF781C29);
+    Frame.Fill(12, 12, Width - 24, 1, 0xFFFF6B6B);
+    DrawTitleText("GAME OVER", 24, White, 4);
+    DrawTitleText("OUT OF LIVES. OUT OF EXCUSES.", 54, Gold, 1);
 
-    return (above, below) switch
+    const int Scale = 3;
+    const int StoneY = 72;
+    var stone = _sprites["tombstone"];
+    int stoneX = (Width - (stone.Width * Scale)) / 2;
+    Frame.Fill(stoneX - 8, StoneY + (stone.Height * Scale), (stone.Width * Scale) + 16, 3, 0xFF43101B);
+
+    for (int y = 0; y < stone.Height; y++)
     {
-      (false, false) => "pipe",
-      (false, true) => "pipe-small-top",
-      (true, false) => "pipe-small-bottom",
-      _ => "pipe-small-body",
-    };
-  }
-
-  private static string PipeSprite(Level level, int x, int y)
-  {
-    int left = x;
-    int right = x;
-
-    while (level.Tile(left - 1, y) == 'P')
-      left--;
-
-    while (level.Tile(right + 1, y) == 'P')
-      right++;
-
-    int width = right - left + 1;
-
-    if (width > 2)
-      return "pipe";
-
-    int top = y;
-    int bottom = y;
-
-    while (IsPipeRow(level, left, width, top - 1))
-      top--;
-
-    while (IsPipeRow(level, left, width, bottom + 1))
-      bottom++;
-
-    // Irregular groups retain the original artwork rather than mismatched pipe pieces.
-    for (int offset = 0; offset < width; offset++)
-    {
-      if (level.Tile(left + offset, top - 1) == 'P' || level.Tile(left + offset, bottom + 1) == 'P')
-        return "pipe";
+      for (int x = 0; x < stone.Width; x++)
+      {
+        uint color = stone.Pixel(x, y);
+        if ((color >> 24) != 0)
+          Frame.Fill(stoneX + (x * Scale), StoneY + (y * Scale), Scale, Scale, color);
+      }
     }
 
-    if (top == bottom)
-      return "pipe";
+    DrawTitleText("YOU DIED", 151, White, 2);
+    DrawWrappedCentered(game.GameOverQuote, 171, White, maxLines: 2);
+    DrawTitleText($"LEVEL {game.LevelLabel}  SCORE {game.Score:000000}  DEATHS {game.TotalDeaths}", 202, White, 1);
 
-    string section = y == top ? "top" : y == bottom ? "bottom" : "body";
-
-    return width == 1
-      ? $"pipe-small-{section}"
-      : $"pipe-{section}-{(x == left ? "left" : "right")}";
-  }
-
-  private static bool IsPipeRow(Level level, int left, int width, int y)
-  {
-    if (level.Tile(left - 1, y) == 'P' || level.Tile(left + width, y) == 'P')
-      return false;
-
-    for (int offset = 0; offset < width; offset++)
-    {
-      if (level.Tile(left + offset, y) != 'P')
-        return false;
-    }
-
-    return true;
-  }
-
-  private void DrawActor(Sprite sprite, double x, double y, int cameraX, int cameraY, bool flip, bool keepInView = false, double bodyHeight = Game.BodyHeight)
-  {
-    int px = (int)Math.Round((x + (Game.BodyWidth / 2)) * TileSize) - (sprite.Width / 2) - cameraX;
-    int py = HeaderHeight + (int)Math.Round((y + bodyHeight) * TileSize) - sprite.Height - cameraY;
-
-    if (keepInView)
-    {
-      px = Math.Clamp(px, 0, Width - sprite.Width);
-      py = Math.Clamp(py, HeaderHeight, Height - FooterHeight - sprite.Height);
-    }
-
-    Frame.Draw(sprite, px, py, flip);
+    Frame.Fill(12, 215, Width - 24, 1, 0xFFFF6B6B);
+    DrawTitleText(deathContinueReady ? (_touchControls ? "JUMP OR START TO BEGIN AGAIN" : "PRESS ENTER TO START OVER")
+      : "PLEASE WAIT...", 226, Gold, 1);
   }
 
   private void DrawGraveyard(int cameraX, int cameraY, int levelHeight)
@@ -1058,6 +1034,118 @@ internal sealed class PixelRenderer
       var stone = _sprites[index % 2 == 0 ? "tombstone" : "tombstone-cross"];
       Frame.Draw(stone, nearX, groundY - stone.Height);
     }
+  }
+
+  private void DrawHud(Game game)
+  {
+    string message = _touchControls ? game.Message.Replace("X or CTRL", "ATTACK", StringComparison.OrdinalIgnoreCase)
+      .Replace("Down or S", "DOWN", StringComparison.OrdinalIgnoreCase) : game.Message;
+    Frame.Fill(0, 0, Width, HeaderHeight, Ink);
+    Frame.Fill(0, HeaderHeight - 2, Width, 2, 0xFF355575);
+    if (game.Level.IsSpeedRun)
+    {
+      PixelFont.Draw(Frame, $"SCORE {game.Score:000000}", 8, 8, White);
+      PixelFont.Draw(Frame, "SPEED RUNS", 80, 8, Gold);
+      PixelFont.Draw(Frame, message[..Math.Min(38, message.Length)], 8, 19, 0xFFA7CBDC);
+      PixelFont.Draw(Frame, $"{game.LevelLabel}  LIVES {game.Lives}", 278, 8, White);
+      PixelFont.Draw(Frame, $"COINS {game.Coins:00}", 278, 19, White);
+      string countdown = game.LevelSecondsRemaining.ToString("00");
+      int timerX = (Width - ((countdown.Length * 4 - 1) * 2)) / 2;
+      PixelFont.Draw(Frame, "TIME", (Width - 15) / 2, 2, Gold);
+      PixelFont.Draw(Frame, countdown, timerX, 11, game.LevelSecondsRemaining <= 3 ? 0xFFFF6B6B : Gold, 2);
+    }
+    else
+    {
+      PixelFont.Draw(Frame, "Sam n' Ella", 8, 8, Gold);
+      PixelFont.Draw(Frame, $"SCORE {game.Score:000000}   COINS {game.Coins:00}   LIVES {game.Lives}   {game.LevelLabel}", 76, 8, White);
+      string seconds = game.LevelSecondsRemaining.ToString("000");
+      int timeX = Width - (((seconds.Length * 4) - 1) * 2) - 8;
+      uint timeColor = game.LevelSecondsRemaining <= 10 ? 0xFFFF6B6B : Gold;
+      PixelFont.Draw(Frame, "TIME", timeX - 23, 8, timeColor);
+      PixelFont.Draw(Frame, seconds, timeX, 5, timeColor, 2);
+      PixelFont.Draw(Frame, message, 8, 19, 0xFFA7CBDC);
+    }
+
+    Frame.Fill(0, Height - FooterHeight, Width, FooterHeight, Ink);
+    PixelFont.Draw(Frame, _touchControls ? "ARROWS MOVE  DOWN PIPE  ATTACK  JUMP  START PAUSE" : "A/D MOVE  SPACE JUMP  DOWN/S PIPE  X FIRE  ENTER PAUSE  R RETRY", 8, Height - 9, White);
+  }
+
+  private void DrawMenuChoice(string text, int y, bool selected)
+  {
+    DrawTitleText(selected ? $"> {text} <" : text, y, selected ? Gold : White, 1);
+  }
+
+  private void DrawPauseMenu(int selection)
+  {
+    Frame.FillTranslucent(70, 76, 244, 104, Ink, 230);
+    Frame.Fill(72, 78, 240, 1, Gold);
+    DrawTitleText("PAUSED", 89, Gold, 2);
+    DrawMenuChoice("RESUME GAME", 116, selection == 0);
+    DrawMenuChoice("SETTINGS", 135, selection == 1);
+    DrawTitleText(_touchControls ? "SELECT MENU  JUMP ACCEPT  ATTACK CANCEL" : "UP/DOWN SELECT  ENTER CONFIRM", 161, White, 1);
+  }
+
+  private void DrawPlayerDeath(Game game, int cameraX, int cameraY)
+  {
+    int age = Math.Clamp(Game.DeathDurationTicks - game.DeathTicksRemaining, 0, Game.DeathDurationTicks);
+    bool flip = game.FacingDirection < 0;
+    DrawActor(_sprites[PlayerSprite(game.Character, "player-splatter")], game.X, game.Y, cameraX, cameraY, flip, true);
+    if (age < 48)
+      DrawActor(_sprites[PlayerSprite(game.Character, $"player-explosion-{age / 12 + 1}")],
+        game.X, game.Y, cameraX, cameraY, flip, true);
+
+    int left = Math.Clamp((int)Math.Round((game.X + Game.BodyWidth / 2) * TileSize) - cameraX - 12, 0, Width - 24);
+    int floor = Math.Clamp(HeaderHeight + (int)Math.Round((game.Y + Game.BodyHeight) * TileSize) - cameraY,
+      HeaderHeight + 16, Height - FooterHeight) - 1;
+    int center = left + 12;
+
+    // The intestines uncoil and spill outward, then settle as the death timer ends.
+    double spill = Math.Clamp((age - 6) / 108.0, 0, 1);
+    int length = (int)Math.Round(30 * spill);
+    for (int strand = 0; strand < 3; strand++)
+    {
+      int direction = (strand == 1 ? -1 : 1) * game.FacingDirection;
+      for (int pixel = 0; pixel < length - strand * 3; pixel++)
+      {
+        int x = center + direction * pixel;
+        int curl = (int)Math.Round(Math.Sin(pixel * 0.65 + strand * 2) * 2
+          + Math.Sin(pixel * 0.3 + age * 0.18) * (1 - spill) * 3);
+        int y = floor - 4 - strand * 2 + curl;
+        Frame.Fill(x - 1, y - 1, 4, 4, 0xFF981D3B);
+        Frame.Fill(x, y, 2, 2, 0xFFD98290);
+        if (pixel % 3 == 0)
+          Frame.Fill(x, y, 1, 1, 0xFFF1BB8B);
+      }
+    }
+
+    for (int fragment = 0; fragment < 20; fragment++)
+    {
+      int elapsed = age - fragment % 5 * 4;
+      if (elapsed < 0)
+        continue;
+
+      double launch = 1.3 + fragment % 4 * 0.23;
+      double landing = (launch + Math.Sqrt(launch * launch + 1.92)) / 0.12;
+      double flight = Math.Min(elapsed, landing);
+      int direction = (fragment % 2 == 0 ? -1 : 1) * game.FacingDirection;
+      int x = center + direction * (int)Math.Round(flight * (0.35 + fragment % 7 * 0.12));
+      int y = Math.Min(floor - 2, floor - 8 + (int)Math.Round(-launch * flight + 0.06 * flight * flight));
+      bool clothing = fragment % 5 == 0;
+      uint color = clothing ? (game.Character == PlayerCharacter.Ella ? 0xFF8745B5u : 0xFF238D93u)
+        : fragment % 3 == 0 ? 0xFF981D3Bu : 0xFFE83B3Bu;
+      Frame.Fill(x, y, clothing ? 3 : 2, elapsed < landing ? 3 : 2, color);
+      if (!clothing && fragment % 3 == 0)
+        Frame.Fill(x + 1, y, 2, 1, 0xFFD98290);
+    }
+  }
+
+  private void DrawTitleText(string text, int y, uint color, int scale, bool shadow = false)
+  {
+    int x = (Width - (((text.Length * 4) - 1) * scale)) / 2;
+    if (shadow)
+      PixelFont.Draw(Frame, text, x + 2, y + 3, Ink, scale);
+
+    PixelFont.Draw(Frame, text, x, y, color, scale);
   }
 
   private void DrawUnderworld(int cameraX)
@@ -1104,82 +1192,70 @@ internal sealed class PixelRenderer
     }
   }
 
-  private void DrawBackground(int cameraX, bool night = false)
+  private void DrawVolumeSlider(string label, int y, int volume, bool selected)
   {
-    for (int y = 0; y < Height; y++)
-    {
-      uint color = night
-        ? y < 70 ? 0xFF101B35 : y < 125 ? 0xFF1A2946 : 0xFF243A50
-        : y < 70 ? 0xFF608CC8 : y < 125 ? 0xFF79ADD7 : 0xFF9BCEE1;
-      Frame.Fill(0, y, Width, 1, color);
-    }
+    if (selected)
+      Frame.FillTranslucent(36, y - 5, Width - 72, 24, Gold, 40);
 
-    if (night)
-    {
-      for (int index = 0; index < 22; index++)
-      {
-        int x = ((index * 53) + 17) % Width;
-        int y = 34 + ((index * 29) % 66);
-        Frame.Fill(x, y, 1, 1, 0xFFBFD7E8);
-      }
-
-      Frame.Draw(_sprites["moon"], 295, 38);
-    }
-    else
-    {
-      Frame.Fill(301, 45, 20, 20, 0xFFFFDF8A);
-      Frame.Fill(297, 49, 28, 12, 0xFFFFDF8A);
-    }
-
-    for (int i = -1; i < 5; i++)
-    {
-      int x = (i * 112) - ((cameraX / 5) % 112);
-      int y = 55 + ((i & 1) * 17);
-      Frame.Fill(x + 8, y, 25, 6, night ? 0xFF2D405A : 0xFFDEEFF4);
-      Frame.Fill(x, y + 6, 47, 9, night ? 0xFF2D405A : 0xFFDEEFF4);
-      Frame.Fill(x + 5, y + 15, 35, 3, night ? 0xFF23344E : 0xFFB6DCEB);
-    }
-
-    for (int x = 0; x < Width; x++)
-    {
-      int far = Math.Abs(((x + (cameraX / 6)) % 180) - 90);
-      int near = Math.Abs(((x + (cameraX / 3) + 60) % 150) - 75);
-      int farTop = 110 + (far / 2);
-      int nearTop = 150 + (near / 2);
-      Frame.Fill(x, farTop, 1, Height - farTop, night ? 0xFF253854 : 0xFF679DA5);
-      Frame.Fill(x, nearTop, 1, Height - nearTop, night ? 0xFF1B3041 : 0xFF4A887D);
-    }
+    uint color = selected ? Gold : White;
+    PixelFont.Draw(Frame, selected ? ">" : " ", 40, y, Gold);
+    PixelFont.Draw(Frame, label, 52, y, color);
+    PixelFont.Draw(Frame, $"{volume}%", 208, y, color);
+    Frame.Fill(244, y + 2, 92, 3, 0xFF525D70);
+    Frame.Fill(244, y + 2, volume * 92 / 100, 3, Gold);
+    Frame.Fill(244 + (volume * 85 / 100), y - 1, 7, 9, color);
   }
 
-  private void DrawHud(Game game)
+  private void DrawWeaponQuote(string quote, string title)
   {
-    Frame.Fill(0, 0, Width, HeaderHeight, Ink);
-    Frame.Fill(0, HeaderHeight - 2, Width, 2, 0xFF355575);
-    if (game.Level.IsSpeedRun)
+    const int MaxCharacters = 42;
+    var lines = new List<string>();
+    string remaining = quote.Trim();
+    while (remaining.Length > 0 && lines.Count < 3)
     {
-      PixelFont.Draw(Frame, $"SCORE {game.Score:000000}", 8, 8, White);
-      PixelFont.Draw(Frame, "SPEED RUNS", 80, 8, Gold);
-      PixelFont.Draw(Frame, game.Message[..Math.Min(38, game.Message.Length)], 8, 19, 0xFFA7CBDC);
-      PixelFont.Draw(Frame, $"{game.LevelLabel}  LIVES {game.Lives}", 278, 8, White);
-      PixelFont.Draw(Frame, $"COINS {game.Coins:00}", 278, 19, White);
-      string countdown = game.LevelSecondsRemaining.ToString("00");
-      int timerX = (Width - ((countdown.Length * 4 - 1) * 2)) / 2;
-      PixelFont.Draw(Frame, "TIME", (Width - 15) / 2, 2, Gold);
-      PixelFont.Draw(Frame, countdown, timerX, 11, game.LevelSecondsRemaining <= 3 ? 0xFFFF6B6B : Gold, 2);
-    }
-    else
-    {
-      PixelFont.Draw(Frame, "Sam n' Ella", 8, 8, Gold);
-      PixelFont.Draw(Frame, $"SCORE {game.Score:000000}   COINS {game.Coins:00}   LIVES {game.Lives}   {game.LevelLabel}", 76, 8, White);
-      string seconds = game.LevelSecondsRemaining.ToString("000");
-      int timeX = Width - (((seconds.Length * 4) - 1) * 2) - 8;
-      uint timeColor = game.LevelSecondsRemaining <= 10 ? 0xFFFF6B6B : Gold;
-      PixelFont.Draw(Frame, "TIME", timeX - 23, 8, timeColor);
-      PixelFont.Draw(Frame, seconds, timeX, 5, timeColor, 2);
-      PixelFont.Draw(Frame, game.Message, 8, 19, 0xFFA7CBDC);
+      int length = Math.Min(MaxCharacters, remaining.Length);
+      if (length < remaining.Length)
+      {
+        int space = remaining.LastIndexOf(' ', length - 1, length);
+        if (space > 0)
+          length = space;
+      }
+
+      string line = remaining[..length].Trim();
+      remaining = remaining[length..].TrimStart();
+      if (lines.Count == 2 && remaining.Length > 0)
+        line = line[..Math.Min(line.Length, MaxCharacters - 3)] + "...";
+      lines.Add(line);
     }
 
-    Frame.Fill(0, Height - FooterHeight, Width, FooterHeight, Ink);
-    PixelFont.Draw(Frame, "A/D MOVE  SPACE JUMP  DOWN/S PIPE  X FIRE  ENTER PAUSE  R RETRY", 8, Height - 9, White);
+    Frame.Fill(12, 42, Width - 24, 22 + (lines.Count * 12), Ink);
+    Frame.Fill(12, 42, Width - 24, 1, Gold);
+    DrawTitleText(title, 48, Gold, 1);
+    for (int index = 0; index < lines.Count; index++)
+      DrawTitleText(lines[index], 60 + (index * 12), White, 2);
+  }
+
+  private void DrawWrappedCentered(string text, int y, uint color, int maxLines = 3)
+  {
+    const int MaxCharacters = 42;
+    string remaining = text.Trim();
+
+    for (int index = 0; index < maxLines && remaining.Length > 0; index++)
+    {
+      int length = Math.Min(MaxCharacters, remaining.Length);
+
+      if (length < remaining.Length)
+      {
+        int space = remaining.LastIndexOf(' ', length - 1, length);
+        if (space > 0)
+          length = space;
+      }
+
+      string line = remaining[..length].Trim();
+      remaining = remaining[length..].TrimStart();
+      if (index == maxLines - 1 && remaining.Length > 0)
+        line = line[..Math.Min(line.Length, MaxCharacters - 3)] + "...";
+      DrawTitleText(line, y + (index * 12), color, 2);
+    }
   }
 }

@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
@@ -9,16 +12,16 @@ internal sealed class WindowsGameWindow : IGameWindow
 {
   private const uint WindowStyle = 0x00CF0000;
 
+  private readonly string _className = $"SamElla-{Guid.NewGuid():N}";
+  private readonly int _height;
+  private readonly nint _instance;
   private readonly GameKeyboard _keyboard = new();
   private readonly NativeMethods.WindowProcedure _procedure;
   private readonly int _width;
-  private readonly int _height;
-  private readonly string _className = $"SamElla-{Guid.NewGuid():N}";
-  private readonly nint _instance;
-  private nint _handle;
-  private bool _focused;
-  private bool _minimized;
   private bool _disposed;
+  private bool _focused;
+  private nint _handle;
+  private bool _minimized;
 
   public WindowsGameWindow(int width, int height)
   {
@@ -59,13 +62,10 @@ internal sealed class WindowsGameWindow : IGameWindow
   public bool Active => _focused && !_minimized;
 
   public bool AnyKeyPressed => _keyboard.AnyKeyPressed;
+  public bool Closed { get; private set; }
   public IReadOnlyList<int> KeyPresses => _keyboard.KeyPresses;
 
-  public bool Closed { get; private set; }
-
-  public bool Down(GameKey key) => _keyboard.Down(key);
-
-  public bool Pressed(GameKey key) => _keyboard.Pressed(key);
+  public static void ShowError(string message) => NativeMethods.MessageBoxW(0, message, "Sam n' Ella", 0x10);
 
   public void Dispose()
   {
@@ -81,12 +81,7 @@ internal sealed class WindowsGameWindow : IGameWindow
     GC.KeepAlive(_procedure);
   }
 
-  private static nint LoadApplicationIcon(nint instance, bool small)
-  {
-    // The SDK embeds ApplicationIcon as resource 32512. LR_SHARED owns its lifetime.
-    return NativeMethods.LoadImageW(instance, 32512, 1,
-      NativeMethods.GetSystemMetrics(small ? 49 : 11), NativeMethods.GetSystemMetrics(small ? 50 : 12), 0x8000);
-  }
+  public bool Down(GameKey key) => _keyboard.Down(key);
 
   public unsafe void Present(PixelBuffer frame)
   {
@@ -135,6 +130,8 @@ internal sealed class WindowsGameWindow : IGameWindow
     }
   }
 
+  public bool Pressed(GameKey key) => _keyboard.Pressed(key);
+
   public void PumpEvents()
   {
     _keyboard.BeginFrame();
@@ -152,7 +149,12 @@ internal sealed class WindowsGameWindow : IGameWindow
     }
   }
 
-  public static void ShowError(string message) => NativeMethods.MessageBoxW(0, message, "Sam n' Ella", 0x10);
+  private static nint LoadApplicationIcon(nint instance, bool small)
+  {
+    // The SDK embeds ApplicationIcon as resource 32512. LR_SHARED owns its lifetime.
+    return NativeMethods.LoadImageW(instance, 32512, 1,
+      NativeMethods.GetSystemMetrics(small ? 49 : 11), NativeMethods.GetSystemMetrics(small ? 50 : 12), 0x8000);
+  }
 
   private nint HandleMessage(nint window, uint message, nuint wParam, nint lParam)
   {

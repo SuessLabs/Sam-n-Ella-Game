@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System.Globalization;
 
 namespace SamElla;
@@ -16,8 +19,6 @@ internal sealed class Sprite
   public int Height { get; }
 
   public int Width { get; }
-
-  public uint Pixel(int x, int y) => _pixels[(y * Width) + x];
 
   public static Sprite Load(string path, IReadOnlyDictionary<char, uint> palette) =>
     Parse(Path.GetFileName(path), File.ReadAllLines(path), palette);
@@ -67,6 +68,8 @@ internal sealed class Sprite
 
     return new Sprite(width, height, pixels);
   }
+
+  public uint Pixel(int x, int y) => _pixels[(y * Width) + x];
 
   private static IEnumerable<string> DataLines(string[] lines) =>
     lines.Select(line => line.Trim()).Where(line => line.Length > 0 && !line.StartsWith(';'));

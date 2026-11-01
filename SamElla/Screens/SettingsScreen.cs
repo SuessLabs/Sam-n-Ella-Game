@@ -1,26 +1,21 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using SamElla.Audio;
 using SamElla.Updater;
 
 namespace SamElla.Screens;
 
-internal sealed class SettingsScreen(AudioSettings audio, UpdateSettings? updates = null)
+internal sealed class SettingsScreen(AudioSettings audio, UpdateSettings? updates = null, bool updatesSupported = true)
 {
-  private const int RowCount = 6;
   private const int VolumeStep = 5;
-
   public AudioSettings Audio { get; } = audio;
-
-  public UpdateSettings Updates { get; } = updates ?? new();
-
+  public int BackIndex => RowCount - 1;
   public bool IsActive { get; private set; }
-
   public int SelectedIndex { get; private set; }
-
-  public void Open()
-  {
-    SelectedIndex = 0;
-    IsActive = true;
-  }
+  public UpdateSettings Updates { get; } = updates ?? new();
+  public bool UpdatesSupported { get; } = updatesSupported;
+  private int RowCount => UpdatesSupported ? 6 : 5;
 
   public void HandleInput(IReadOnlyList<int> keyPresses, bool windowActive)
   {
@@ -49,7 +44,7 @@ internal sealed class SettingsScreen(AudioSettings audio, UpdateSettings? update
         case 0x27: // Right: on / increase volume
         case 0x0D: // Enter
         case 0x20: // Space
-          if (SelectedIndex == 5)
+          if (SelectedIndex == BackIndex)
           {
             if (code is 0x0D or 0x20)
             {
@@ -87,5 +82,11 @@ internal sealed class SettingsScreen(AudioSettings audio, UpdateSettings? update
           break;
       }
     }
+  }
+
+  public void Open()
+  {
+    SelectedIndex = 0;
+    IsActive = true;
   }
 }

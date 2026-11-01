@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -103,6 +106,67 @@ public sealed class SpeedRunsTests : GameTestBase
     Assert.AreEqual(0, game.PipeReliefTicksRemaining);
     game.Restart();
     Assert.IsTrue(game.CanUseReliefPipe(4, 6));
+  }
+
+  [TestMethod]
+  [DataRow(PlayerCharacter.Sam, -1, true)]
+  [DataRow(PlayerCharacter.Sam, 1, true)]
+  [DataRow(PlayerCharacter.Ella, -1, true)]
+  [DataRow(PlayerCharacter.Ella, 1, true)]
+  [DataRow(PlayerCharacter.Sam, 1, false)]
+  [DataRow(PlayerCharacter.Ella, -1, false)]
+  public void PipeReliefKeepsPlayerSizeAndAnimatesBehindTheirFacingDirection(PlayerCharacter character, int direction, bool grown)
+  {
+    Map("SpeedRun=true", $"StartingPower={(grown ? "Growth" : "None")}",
+      "................................", "................................", "................................", "................................",
+      "................................", "....S...........................", "....PP......p...................",
+      "....PP......p.................T.", "################################");
+    var game = new Game([LevelPath]) { Character = character };
+    Tick(game, 6);
+    game.Update(direction, false);
+    Tick(game, 6);
+    var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"));
+    renderer.Draw(game, direction, 0);
+    string assets = Path.Combine(AppContext.BaseDirectory, "Assets");
+    string spriteName = (character == PlayerCharacter.Ella ? "ella" : "player") + (grown ? "-large-idle" : "-idle");
+    var sprite = Sprite.Load(Path.Combine(assets, spriteName + ".sprite"), Sprite.LoadPalette(Path.Combine(assets, "palette.txt")));
+    int clock = game.LevelTicksRemaining;
+    double height = game.PlayerHeight;
+    game.Update(0, false, downHeld: true);
+    Assert.AreEqual(clock + 300, game.LevelTicksRemaining);
+    Assert.AreEqual(Game.PipeReliefDurationTicks, game.PipeReliefTicksRemaining);
+    Assert.AreEqual(grown, game.IsLarge);
+    Assert.AreEqual(height, game.PlayerHeight);
+
+    int headY = 28 + (int)Math.Round((game.Y + height) * 16) - (grown ? 32 : 16);
+    int headX = (int)Math.Round((game.X + Game.BodyWidth / 2) * 16) - 8;
+    for (int age = 0; age < 10; age++)
+    {
+      renderer.Draw(game, 0, 0);
+      for (int y = headY; y < headY + 8; y++)
+        for (int x = headX; x < headX + 16; x++)
+        {
+          uint expected = sprite.Pixel(direction < 0 ? 15 - (x - headX) : x - headX, y - headY);
+          if (expected != 0)
+            Assert.AreEqual(expected, renderer.Frame.Pixels[y * PixelRenderer.Width + x],
+              "The relief pose must preserve the standing sprite's head and full height.");
+        }
+
+
+      int puffY = 28 + (int)Math.Round((game.Y + height - 0.25) * 16) - 3;
+      int[] puffPixels = Enumerable.Range(0, PixelRenderer.Width)
+        .Where(x => renderer.Frame.Pixels[puffY * PixelRenderer.Width + x] == 0xFF754A44).ToArray();
+      Assert.IsNotEmpty(puffPixels);
+      Assert.IsTrue(puffPixels.All(x => direction > 0 ? x < game.X * 16 : x > (game.X + Game.BodyWidth) * 16));
+      if (age == 0)
+        SavePreview(renderer, $"pipe-relief-{character}-{direction}-{grown}.png");
+
+      Tick(game, 1);
+    }
+
+    Tick(game, Game.PipeReliefDurationTicks - 10);
+    Assert.AreEqual(grown, game.IsLarge);
+    Assert.AreEqual(height, game.PlayerHeight);
   }
 
   [TestMethod]

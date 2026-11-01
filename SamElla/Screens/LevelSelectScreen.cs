@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 namespace SamElla.Screens;
 
 internal sealed record LevelSelectEntry(int Number, string Name, BackgroundTheme Theme)
@@ -21,16 +24,15 @@ internal sealed class LevelSelectScreen
       {
         DisplayNumber = level.SectionLevelNumber ?? (index + 1).ToString(),
       };
-
     }).ToArray();
   }
 
-  public IReadOnlyList<LevelSelectEntry> Levels { get; }
-  public bool IsActive { get; private set; } = true;
   public bool Confirmed { get; private set; }
-  public int SelectedIndex { get; private set; }
+  public bool IsActive { get; private set; } = true;
+  public IReadOnlyList<LevelSelectEntry> Levels { get; }
   public int Page => SelectedIndex / PageSize;
   public int PageCount => (Levels.Count + PageSize - 1) / PageSize;
+  public int SelectedIndex { get; private set; }
 
   public static string[] Discover(string directory) => Directory.GetFiles(directory, "*.txt")
     .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase).ToArray();

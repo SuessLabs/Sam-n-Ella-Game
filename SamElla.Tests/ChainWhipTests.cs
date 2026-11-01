@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,6 +32,27 @@ public sealed class ChainWhipTests : GameTestBase
     Assert.IsFalse(game.HasFlamethrower);
     Assert.AreEqual('X', game.Level.Tile(heartX, 16));
     Assert.AreEqual('X', game.Level.Tile(whipX, 16));
+  }
+
+  [TestMethod]
+  [DataRow(PlayerCharacter.Sam)]
+  [DataRow(PlayerCharacter.Ella)]
+  public void EmoBossLevelOffersWhipAfterCollectingGrowth(PlayerCharacter character)
+  {
+    var game = new Game([Path.Combine(AppContext.BaseDirectory, "Levels", "03-06-emo-kid-boss.txt")]) { Character = character };
+    game.Enemies.Clear();
+    MoveTo(game, 18);
+    Bump(game);
+    TouchHeart(game);
+    Tick(game, 60);
+    Assert.IsTrue(game.IsLarge);
+    Assert.IsFalse(game.HasChainWhip);
+    MoveTo(game, 24);
+    Bump(game);
+    TouchHeart(game);
+    Assert.IsTrue(game.HasChainWhip);
+    Assert.AreEqual('X', game.Level.Tile(18, 16));
+    Assert.AreEqual('X', game.Level.Tile(24, 16));
   }
 
   [TestMethod]
@@ -263,7 +287,8 @@ public sealed class ChainWhipTests : GameTestBase
   private static Enemy AddEnemy(Game game, double x, int health)
   {
     var enemy = new Enemy(x, game.Y + game.PlayerHeight - Game.BodyHeight,
-      settings: new EnemySettings(0, health, 0)) { Direction = 0 };
+      settings: new EnemySettings(0, health, 0))
+    { Direction = 0 };
     game.Enemies.Add(enemy);
     return enemy;
   }

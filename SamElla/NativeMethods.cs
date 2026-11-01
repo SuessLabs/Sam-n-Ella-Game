@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
@@ -7,6 +10,9 @@ namespace SamElla;
 [SupportedOSPlatform("windows")]
 internal static class NativeMethods
 {
+  [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+  internal delegate nint WindowProcedure(nint window, uint message, nuint wParam, nint lParam);
+
   [DllImport("user32.dll", ExactSpelling = true)]
   internal static extern bool AdjustWindowRect(ref Rectangle rectangle, uint style, bool menu);
 
@@ -81,19 +87,43 @@ internal static class NativeMethods
   [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
   internal static extern bool UnregisterClassW(string className, nint instance);
 
-  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-  internal struct WindowClass
+  [StructLayout(LayoutKind.Sequential)]
+  internal struct BitmapInfo
   {
-    public uint Style;
-    public WindowProcedure Procedure;
-    public int ClassExtra;
-    public int WindowExtra;
-    public nint Instance;
-    public nint Icon;
-    public nint Cursor;
-    public nint Background;
-    public string? MenuName;
-    public string ClassName;
+    public uint Size;
+    public int Width;
+    public int Height;
+    public ushort Planes;
+    public ushort BitCount;
+    public uint Compression;
+    public uint ImageSize;
+    public int PixelsPerMeterX;
+    public int PixelsPerMeterY;
+    public uint ColorsUsed;
+    public uint ColorsImportant;
+    public uint Color;
+  }
+
+  [StructLayout(LayoutKind.Sequential)]
+  internal struct Message
+  {
+    public nint Window;
+    public uint Id;
+    public nuint WParam;
+    public nint LParam;
+    public uint Time;
+    public Point Position;
+    public uint Private;
+  }
+
+  [StructLayout(LayoutKind.Sequential)]
+  internal struct MinMaxInfo
+  {
+    public Point Reserved;
+    public Point MaxSize;
+    public Point MaxPosition;
+    public Point MinTrack;
+    public Point MaxTrack;
   }
 
   [StructLayout(LayoutKind.Sequential)]
@@ -112,45 +142,18 @@ internal static class NativeMethods
     public int Bottom;
   }
 
-  [StructLayout(LayoutKind.Sequential)]
-  internal struct MinMaxInfo
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+  internal struct WindowClass
   {
-    public Point Reserved;
-    public Point MaxSize;
-    public Point MaxPosition;
-    public Point MinTrack;
-    public Point MaxTrack;
+    public uint Style;
+    public WindowProcedure Procedure;
+    public int ClassExtra;
+    public int WindowExtra;
+    public nint Instance;
+    public nint Icon;
+    public nint Cursor;
+    public nint Background;
+    public string? MenuName;
+    public string ClassName;
   }
-
-  [StructLayout(LayoutKind.Sequential)]
-  internal struct Message
-  {
-    public nint Window;
-    public uint Id;
-    public nuint WParam;
-    public nint LParam;
-    public uint Time;
-    public Point Position;
-    public uint Private;
-  }
-
-  [StructLayout(LayoutKind.Sequential)]
-  internal struct BitmapInfo
-  {
-    public uint Size;
-    public int Width;
-    public int Height;
-    public ushort Planes;
-    public ushort BitCount;
-    public uint Compression;
-    public uint ImageSize;
-    public int PixelsPerMeterX;
-    public int PixelsPerMeterY;
-    public uint ColorsUsed;
-    public uint ColorsImportant;
-    public uint Color;
-  }
-
-  [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-  internal delegate nint WindowProcedure(nint window, uint message, nuint wParam, nint lParam);
 }

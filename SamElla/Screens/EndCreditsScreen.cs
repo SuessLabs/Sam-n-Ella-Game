@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 namespace SamElla.Screens;
 
 internal readonly record struct CreditLine(string Text, int Y, int Scale, bool Highlight, bool PreserveCase = false);
@@ -41,13 +44,20 @@ internal sealed class EndCreditsScreen
     Add("R TO PLAY AGAIN", 2, true);
   }
 
+  public int ClosingOffset { get; }
+  public string ClosingQuote { get; }
+  public IReadOnlyList<CreditLine> Lines => _lines;
   public string OpeningQuote { get; }
 
-  public string ClosingQuote { get; }
+  private static string ChooseQuote(string path, string fallback)
+  {
+    string[] quotes = File.Exists(path)
+      ? File.ReadAllLines(path).Select(line => line.Trim())
+        .Where(line => line.Length > 0 && !line.StartsWith(';')).ToArray()
+      : [];
 
-  public int ClosingOffset { get; }
-
-  public IReadOnlyList<CreditLine> Lines => _lines;
+    return quotes.Length == 0 ? fallback : quotes[Random.Shared.Next(quotes.Length)];
+  }
 
   private void Add(string text, int scale = 2, bool highlight = false, bool preserveCase = false)
   {
@@ -72,15 +82,5 @@ internal sealed class EndCreditsScreen
       Add(remaining[..length].Trim(), 2, true);
       remaining = remaining[length..].TrimStart();
     }
-  }
-
-  private static string ChooseQuote(string path, string fallback)
-  {
-    string[] quotes = File.Exists(path)
-      ? File.ReadAllLines(path).Select(line => line.Trim())
-        .Where(line => line.Length > 0 && !line.StartsWith(';')).ToArray()
-      : [];
-
-    return quotes.Length == 0 ? fallback : quotes[Random.Shared.Next(quotes.Length)];
   }
 }
