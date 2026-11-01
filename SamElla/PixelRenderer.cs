@@ -391,7 +391,7 @@ internal sealed class PixelRenderer
     DrawTitleText(prompt, 224, Gold, 1);
   }
 
-  private void DrawGameOver(Game game)
+  private void DrawGameOver(Game game, bool deathContinueReady)
   {
     Frame.Clear(0xFF781C29);
     Frame.Fill(12, 12, Width - 24, 1, 0xFFFF6B6B);
@@ -419,7 +419,8 @@ internal sealed class PixelRenderer
     DrawTitleText($"LEVEL {game.LevelLabel}  SCORE {game.Score:000000}  DEATHS {game.TotalDeaths}", 202, White, 1);
 
     Frame.Fill(12, 215, Width - 24, 1, 0xFFFF6B6B);
-    DrawTitleText((_touchControls ? "PRESS JUMP TO START OVER" : "PRESS ENTER TO START OVER"), 226, Gold, 1);
+    DrawTitleText(deathContinueReady ? (_touchControls ? "JUMP OR START TO BEGIN AGAIN" : "PRESS ENTER TO START OVER")
+      : "PLEASE WAIT...", 226, Gold, 1);
   }
 
   private void DrawWrappedCentered(string text, int y, uint color, int maxLines = 3)
@@ -446,11 +447,11 @@ internal sealed class PixelRenderer
     }
   }
 
-  public void Draw(Game game, int direction, double elapsed = Game.Step, int pauseSelection = 0)
+  public void Draw(Game game, int direction, double elapsed = Game.Step, int pauseSelection = 0, bool deathContinueReady = true)
   {
     if (game.Lives == 0 && game.AwaitingRestart)
     {
-      DrawGameOver(game);
+      DrawGameOver(game, deathContinueReady);
       return;
     }
 
@@ -833,7 +834,9 @@ internal sealed class PixelRenderer
     if (game.IsDying)
     {
       DrawDeathMessage(game.DeathQuote);
-      string Prompt = game.Lives == 0 ? (_touchControls ? "PRESS JUMP TO START OVER" : "PRESS ENTER TO START OVER") : (_touchControls ? "PRESS JUMP TO CONTINUE" : "PRESS ANY KEY TO CONTINUE");
+      string Prompt = !game.AwaitingRestart || !deathContinueReady ? "PLEASE WAIT..."
+        : _touchControls ? "JUMP OR START TO CONTINUE"
+        : game.Lives == 0 ? "PRESS ENTER TO START OVER" : "PRESS ANY KEY TO CONTINUE";
       int promptScale = game.AwaitingRestart ? 2 : 1;
       int promptY = game.AwaitingRestart ? 112 : Height - 9;
       if (!game.AwaitingRestart)

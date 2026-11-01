@@ -269,6 +269,34 @@ public sealed class MobileHostTests : GameTestBase
       Assert.IsFalse(session.ExitRequested, "Mobile Back resumes the pause menu rather than exiting the game.");
       Assert.AreEqual(30, audio.MusicVolume);
       Assert.AreEqual(50, audio.EffectsVolume);
+      audio.IsDeathSoundPlaying = true;
+      for (int cell = 0; cell < session.Game.Level.Width; cell++)
+        session.Game.Level.Clear(cell, 8);
+
+      for (int tick = 0; tick < 180 && !session.Game.IsDying; tick++)
+        session.Tick(input, Game.Step);
+
+      Assert.IsTrue(session.Game.IsDying);
+      Assert.IsFalse(session.StartEnabled);
+      Press(session, input, 0x0D);
+      Assert.IsTrue(session.Game.IsDying);
+      for (int tick = 0; tick < Game.DeathDurationTicks + 5; tick++)
+        session.Tick(input, Game.Step);
+
+      Assert.IsTrue(session.Game.AwaitingRestart);
+      Assert.IsFalse(session.DeathContinueReady, "A delayed death sound must keep retry locked after the animation finishes.");
+      Press(session, input, GameKeyboard.PauseKey);
+      Press(session, input, 0x0D);
+      Assert.IsTrue(session.Game.IsDying);
+      audio.IsDeathSoundPlaying = false;
+      Assert.IsTrue(session.DeathContinueReady);
+      Assert.IsTrue(session.StartEnabled);
+      Press(session, input, 0x1B);
+      Press(session, input, 0x28);
+      Assert.IsTrue(session.Game.IsDying);
+      Press(session, input, GameKeyboard.PauseKey);
+      Assert.IsFalse(session.Game.IsDying);
+      Assert.AreEqual(2, session.Game.Lives);
     }
 
     finally
@@ -315,6 +343,7 @@ public sealed class MobileHostTests : GameTestBase
 
   private sealed class FakeAudio : IGameAudio
   {
+    public bool IsDeathSoundPlaying { get; set; }
     public bool Paused { get; private set; }
     public int MusicVolume { get; private set; }
     public int EffectsVolume { get; private set; }

@@ -26,6 +26,7 @@ internal sealed class GamePage : ContentPage, IDisposable
   private MobileGameAudio? _audio;
   private MobileLayout? _layout;
   private bool _menu = true;
+  private bool _deathContinueReady;
   private bool _active = true;
   private bool _disposed;
   private bool _loading;
@@ -119,9 +120,10 @@ internal sealed class GamePage : ContentPage, IDisposable
     _session.Tick(_input, now - _previous);
     _previous = now;
     _input.PumpEvents();
-    if (_session.MenuControls != _menu)
+    if (_session.MenuControls != _menu || _session.DeathContinueReady != _deathContinueReady)
     {
       _menu = _session.MenuControls;
+      _deathContinueReady = _session.DeathContinueReady;
       _layout = null;
       _input.SuppressUntilRelease();
     }
@@ -150,7 +152,7 @@ internal sealed class GamePage : ContentPage, IDisposable
     }
 
     double density = DeviceDisplay.MainDisplayInfo.Density;
-    _layout = new MobileLayout(args.Info.Width, args.Info.Height, density, _menu, _session.CanPause);
+    _layout = new MobileLayout(args.Info.Width, args.Info.Height, density, _menu, _session.StartEnabled);
     var view = _layout.Viewport;
     Buffer.BlockCopy(_session.Frame.Pixels, 0, _pixels, 0, _pixels.Length * sizeof(int));
     Marshal.Copy(_pixels, 0, _bitmap.GetPixels(), _pixels.Length);

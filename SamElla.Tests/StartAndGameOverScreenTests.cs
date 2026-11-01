@@ -220,16 +220,57 @@ public sealed class StartAndGameOverScreenTests : GameTestBase
   }
 
   [TestMethod]
-  public void GameOverNeedsAFreshEnterPressButOrdinaryDeathsStillAcceptAnyKey()
+  [DataRow(0x0D, true)]
+  [DataRow(GameKeyboard.PauseKey, true)]
+  [DataRow(0x1B, false)]
+  [DataRow(0x28, false)]
+  [DataRow(0x26, false)]
+  [DataRow(0x58, false)]
+  [DataRow(0x20, false)]
+  public void MobileRetryWaitsForAnimationAndAudioAndOnlyAcceptsJumpOrStart(int key, bool accepted)
+  {
+    CreatePit();
+    var game = new Game([LevelPath]);
+    Die(game);
+    Assert.IsFalse(DeathScreen.HandleInput(game, [key], true, mobileControls: true));
+    Tick(game, Game.DeathDurationTicks);
+    Assert.IsFalse(DeathScreen.HandleInput(game, [key], true, mobileControls: true, deathSoundPlaying: true));
+    Assert.IsFalse(DeathScreen.HandleInput(game, [key], false, mobileControls: true));
+    Assert.AreEqual(accepted, DeathScreen.HandleInput(game, [key], true, mobileControls: true));
+    Assert.AreEqual(!accepted, game.IsDying);
+  }
+
+  [TestMethod]
+  [DataRow(0x0D)]
+  [DataRow(GameKeyboard.PauseKey)]
+  public void MobileLastLifeAlsoWaitsForAnimationAndAudioBeforeJumpOrStart(int key)
+  {
+    CreatePit();
+    var game = new Game([LevelPath]);
+    LoseAllLives(game);
+    Assert.IsFalse(DeathScreen.HandleInput(game, [key], true, mobileControls: true));
+    Tick(game, Game.DeathDurationTicks);
+    Assert.IsFalse(DeathScreen.HandleInput(game, [key], true, mobileControls: true, deathSoundPlaying: true));
+    Assert.IsTrue(DeathScreen.HandleInput(game, [key], true, mobileControls: true));
+    Assert.AreEqual(3, game.Lives);
+    Assert.IsFalse(game.IsDying);
+  }
+
+  [TestMethod]
+  public void GameOverNeedsAFreshEnterAndOrdinaryDeathsWaitForTheirAnimation()
   {
     CreatePit();
     var game = new Game([LevelPath]);
 
     Die(game);
+    Assert.IsFalse(DeathScreen.HandleInput(game, [0x20], true));
+    Tick(game, Game.DeathDurationTicks);
     Assert.IsTrue(DeathScreen.HandleInput(game, [0x20], true));
     Assert.AreEqual(2, game.Lives);
 
     Die(game);
+    Assert.IsFalse(DeathScreen.HandleInput(game, [0x41], true));
+    Tick(game, Game.DeathDurationTicks);
     Assert.IsTrue(DeathScreen.HandleInput(game, [0x41], true));
 
     Die(game);

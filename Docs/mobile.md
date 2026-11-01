@@ -84,6 +84,14 @@ menu-confirmation action; only Jump accepts selections. Settings
 can be closed with Attack or by selecting its Back row and pressing Jump; the Android Back button
 also closes Settings or resumes from Pause.
 
+After death, retry stays locked until the animation and actual death-sound
+playback both finish. A waiting message is shown during that time. Then only a
+fresh Jump or Start press can begin again; arrows, Select, Attack, and touches
+held during the animation cannot skip the wait. Start is enabled for retry once
+the wait ends, and the final-life leaderboard also waits for the death sound.
+Cancelling that leaderboard returns to the retry screen instead of starting a
+new game through the Attack button.
+
 The game stays at 384 x 240. A safe-area-aware landscape canvas scales it to the
 largest size that fits the entire available display, preserving its 16:10 aspect
 ratio without cropping. Fractional scaling avoids wasting space on phones whose
