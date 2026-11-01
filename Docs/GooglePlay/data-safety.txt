@@ -1,5 +1,3 @@
-DRAFT FOR PUBLISHER REVIEW - not a completed Play Console declaration.
-
 Review basis: current mobile host, shared game code, project package references, and Android source manifest. Recheck the final signed release, merged permissions, dependencies, and network behavior before submission.
 
 Current observations

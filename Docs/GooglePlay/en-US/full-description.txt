@@ -17,5 +17,5 @@ RETRO ACTION ON YOUR PHONE
 CONTENT NOTICE
 Contains cartoon violence, pixel-art blood and gore, crude toilet humor, insulting dialogue, and depictions of alcohol and syringes.
 
-Support: [SUPPORT_EMAIL]
-Publisher: [PUBLISHER_NAME]
+Support: game-support@PLACEHOLDER.com
+Publisher: Xeno Innovations, Inc.

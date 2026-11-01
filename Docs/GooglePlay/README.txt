@@ -13,7 +13,9 @@ data-safety-draft.txt: observations and proposed answers requiring release verif
 screenshots/: actual Android captures and provenance/capture instructions.
 
 PLACEHOLDERS
-Replace [PUBLISHER_NAME] and [SUPPORT_EMAIL] in all drafts. Complete the date,
+Account type: Organization. Pricing: Free.
+Support email: game-support@xenoinc.com (placeholder; replace before submission).
+Replace Xeno Innovations, Inc. and the placeholder support email in all drafts. Complete the date,
 privacy-policy URL, support retention/provider details, and remaining launch decisions.
 Do not upload drafts containing placeholders. The policy is not yet hosted or linked
 inside the app. No signing keys, signed store bundle, or Play Console submission
