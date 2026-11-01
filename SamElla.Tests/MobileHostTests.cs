@@ -286,6 +286,7 @@ public sealed class MobileHostTests : GameTestBase
         Press(session, input, layout.Buttons.Single(button => button.Label == label).Key!.Value);
 
       Assert.IsFalse(session.ExitRequested, "Attack must reach the title's code detector instead of exiting or being discarded.");
+      Assert.IsFalse(audio.Sounds.Contains(GameSound.KonamiActivated));
       int jump = layout.Buttons.Single(button => button.Label == "JUMP").Key!.Value;
       input.SetPointer(99, jump);
       session.Tick(input, Game.Step);
@@ -298,11 +299,13 @@ public sealed class MobileHostTests : GameTestBase
       }
 
       input.SetPointer(99, null);
+      Assert.AreEqual(1, audio.Sounds.Count(sound => sound == GameSound.KonamiActivated), "Activation should play once even when Jump stays held.");
       Press(session, input, jump);
       Assert.IsTrue(session.Game.KonamiCheatEnabled);
       Assert.AreEqual(30, session.Game.Lives);
       Assert.IsTrue(session.Game.IsLarge);
       Assert.IsTrue(session.Game.HasFlamethrower);
+      Assert.AreEqual(1, audio.Sounds.Count(sound => sound == GameSound.KonamiActivated), "Starting must not replay the activation cue.");
     }
     finally
     {
@@ -515,8 +518,9 @@ public sealed class MobileHostTests : GameTestBase
     public bool Paused { get; private set; }
     public int MusicVolume { get; private set; }
     public int EffectsVolume { get; private set; }
+    public System.Collections.Generic.List<GameSound> Sounds { get; } = [];
 
-    public void Play(GameSound sound) { }
+    public void Play(GameSound sound) => Sounds.Add(sound);
 
     public void SetMusic(GameMusic music) { }
 

@@ -11,6 +11,9 @@ internal static class GameSounds
 
   public static short[] Create(GameSound sound)
   {
+    if (sound == GameSound.KonamiActivated)
+      return CreateKonamiSting();
+
     if (sound == GameSound.ToiletPaperThrow)
       return CreatePaperWhoosh();
 
@@ -100,6 +103,59 @@ internal static class GameSounds
       }
 
       samples[i] = (short)(value * short.MaxValue * 0.45);
+    }
+
+    return samples;
+  }
+
+  private static short[] CreateKonamiSting()
+  {
+    // Original two-bar, 160 BPM action sting: offbeat stabs and quantized triangle bass.
+    // Zeroes leave deliberate sixteenth-note gaps; the final tonic rings for a beat.
+    const double Step = 60.0 / 160 / 4;
+    const double Duration = 32 * Step;
+    int[] leadNotes = [0, 76, 79, 0, 83, 0, 79, 78, 0, 76, 0, 74, 76, 0, 83, 0,
+      0, 79, 82, 0, 86, 0, 82, 79, 78, 0, 74, 0, 76, 0, 0, 0];
+    int[] bassNotes = [40, 0, 40, 47, 0, 40, 0, 43, 40, 0, 47, 0, 38, 0, 43, 0,
+      36, 0, 36, 43, 0, 39, 0, 43, 38, 0, 45, 0, 40, 0, 0, 0];
+    var lead = leadNotes.Select(note => note == 0 ? 0 : 440 * Math.Pow(2, (note - 69) / 12.0)).ToArray();
+    var bass = bassNotes.Select(note => note == 0 ? 0 : 440 * Math.Pow(2, (note - 69) / 12.0)).ToArray();
+    var samples = new short[(int)(SampleRate * Duration)];
+    uint noiseState = 0x4B4F4E41;
+
+    for (int index = 0; index < samples.Length; index++)
+    {
+      double time = (double)index / SampleRate;
+      int step = Math.Min(31, (int)(time / Step));
+      int noteStep = Math.Min(step, 28);
+      double noteTime = time - noteStep * Step;
+      double length = noteStep == 28 ? Step * 4 : Step * 0.78;
+      double envelope = Math.Min(1, noteTime / 0.003) * Math.Clamp((length - noteTime) / 0.009, 0, 1);
+      double decay = Math.Exp(-noteTime * (noteStep == 28 ? 6 : 12));
+      double chipTime = Math.Floor(noteTime * 11025) / 11025;
+      double bassPhase = chipTime * bass[noteStep] % 1;
+      double triangle = Math.Round((1 - 4 * Math.Abs(bassPhase - 0.5)) * 15) / 15;
+      double low = bass[noteStep] == 0 ? 0 : triangle * envelope * decay * 0.38;
+      double leadPhase = chipTime * lead[noteStep] % 1;
+      double pulse = lead[noteStep] == 0 ? 0 : (leadPhase < 0.25 ? 0.75 : -0.25) * envelope * decay * 0.28;
+      double fifthPhase = chipTime * lead[noteStep] * Math.Pow(2, -5.0 / 12) % 1;
+      double fifth = lead[noteStep] == 0 ? 0 : (fifthPhase < 0.125 ? 0.875 : -0.125) * envelope * decay * 0.12;
+
+      noiseState ^= noiseState << 13;
+      noiseState ^= noiseState >> 17;
+      noiseState ^= noiseState << 5;
+      double noise = (noiseState & 0xFFFF) / 32767.5 - 1;
+      double drumTime = time - step * Step;
+      double attack = Math.Min(1, drumTime / 0.002);
+      double kick = step % 16 is 0 or 7 or 10
+        ? Math.Sin(2 * Math.PI * (48 * drumTime + 1.7 * (1 - Math.Exp(-35 * drumTime))))
+          * Math.Exp(-35 * drumTime) * attack * 0.20 : 0;
+      double snare = step % 16 is 4 or 12
+        ? (noise * 0.8 + Math.Sin(2 * Math.PI * 175 * drumTime) * 0.2)
+          * Math.Exp(-45 * drumTime) * attack * 0.15 : 0;
+      double hat = step % 2 == 0 ? noise * Math.Exp(-180 * drumTime) * attack * 0.045 : 0;
+      double fade = Math.Min(1, (Duration - time) / 0.05);
+      samples[index] = (short)(Math.Clamp((low + pulse + fifth + kick + snare + hat) * fade, -0.85, 0.85) * short.MaxValue);
     }
 
     return samples;

@@ -72,6 +72,26 @@ public sealed class KonamiCodeTests : GameTestBase
   }
 
   [TestMethod]
+  [DataRow(false)]
+  [DataRow(true)]
+  public void ActivationNotificationOccursOnlyWhenACompleteCodeIsEntered(bool mobileControls)
+  {
+    var title = new TitleScreen();
+    int[] keys = mobileControls ? [0x26, 0x26, 0x28, 0x28, 0x25, 0x27, 0x25, 0x27, 0x1B, 0x0D] : Code;
+    foreach (int key in keys)
+      title.HandleInput(Game.Step, [key], true, mobileControls);
+
+    Assert.IsTrue(title.KonamiCodeJustActivated);
+    title.HandleInput(Game.Step, [], true, mobileControls);
+    Assert.IsFalse(title.KonamiCodeJustActivated);
+    Assert.IsTrue(title.KonamiCodeEnabled);
+    foreach (int key in keys)
+      title.HandleInput(Game.Step, [key], true, mobileControls);
+
+    Assert.IsTrue(title.KonamiCodeJustActivated, "Entering the code again can intentionally replay its cue.");
+  }
+
+  [TestMethod]
   public void IncorrectOrPartialCodeDoesNotEnableCheatAndValidRetryWorks()
   {
     var title = new TitleScreen();

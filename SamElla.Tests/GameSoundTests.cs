@@ -65,6 +65,14 @@ public sealed class GameSoundTests : GameTestBase
   }
 
   [TestMethod]
+  public void KonamiStingIsAThreeSecondOneShotWithRepeatableSamples()
+  {
+    var samples = GameSounds.Create(GameSound.KonamiActivated);
+    Assert.AreEqual(GameSounds.SampleRate * 3, samples.Length);
+    CollectionAssert.AreEqual(samples, GameSounds.Create(GameSound.KonamiActivated));
+  }
+
+  [TestMethod]
   public void EffectsHaveDistinctNonSilentPcmAndDeathLastsExactlyTwoSeconds()
   {
     var effects = Enum.GetValues<GameSound>().Select(GameSounds.Create).ToArray();

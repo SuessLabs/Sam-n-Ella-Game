@@ -225,6 +225,9 @@ internal sealed class GameSession : IDisposable
       }
 
       var titleAction = titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active, mobileControls: mobileHost);
+      if (titleScreen.KonamiCodeJustActivated)
+        audio.Play(GameSound.KonamiActivated);
+
       if (titleAction == MenuAction.Settings)
         settings.Open();
       else if (titleAction == MenuAction.Leaderboard)

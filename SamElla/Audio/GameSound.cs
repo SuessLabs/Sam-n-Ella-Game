@@ -20,4 +20,5 @@ internal enum GameSound
   ToiletPaperThrow,
   BlockBreak,
   Coin,
+  KonamiActivated,
 }

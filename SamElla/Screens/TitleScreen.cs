@@ -14,11 +14,13 @@ internal sealed class TitleScreen
   public double Elapsed { get; private set; }
   public bool IsActive { get; private set; } = true;
   public bool KonamiCodeEnabled { get; private set; }
+  public bool KonamiCodeJustActivated { get; private set; }
   public PlayerCharacter SelectedCharacter { get; private set; } = PlayerCharacter.Sam;
   public int SelectedMenuIndex => _menu.SelectedIndex;
 
   public MenuAction HandleInput(double elapsed, IReadOnlyList<int> keyPresses, bool windowActive, bool mobileControls = false)
   {
+    KonamiCodeJustActivated = false;
     if (!IsActive || !windowActive)
       return MenuAction.None;
 
@@ -54,6 +56,7 @@ internal sealed class TitleScreen
     if (_recentKeys.SequenceEqual(KonamiCode))
     {
       KonamiCodeEnabled = true;
+      KonamiCodeJustActivated = true;
       _recentKeys.Clear();
       return true;
     }

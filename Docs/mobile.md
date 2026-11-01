@@ -17,6 +17,9 @@ Attack, Jump** to activate the Konami Code (Attack = B, Jump = A). The final Jum
 only activates the code and leaves the title open. Release it, then press Jump
 again to start with the existing 30-life power-up bonus. Normal Jump menu
 confirmation and Attack cancellation on other screens continue to work.
+Successful entry plays an original three-second chiptune sting with syncopated
+pulse leads, crunchy triangle bass, and noise percussion. It uses the Sound FX
+volume and pauses background music until the cue finishes on both hosts.
 
 While game content and audio load, the mobile page displays
 `Docs/GooglePlay/images/feature-graphic-1024x500.png`, stretched to fill its
