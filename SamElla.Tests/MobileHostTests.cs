@@ -87,6 +87,65 @@ public sealed class MobileHostTests : GameTestBase
   }
 
   [TestMethod]
+  [DataRow(false)]
+  [DataRow(true)]
+  public void ControllerAlwaysShowsArrowCrossCenterButtonsAndNumberedActions(bool menu)
+  {
+    var layout = new MobileLayout(1920, 1080, 3, menu);
+    Assert.HasCount(8, layout.Buttons);
+    var up = layout.Buttons.Single(button => button.Label == "↑");
+    var down = layout.Buttons.Single(button => button.Label == "↓");
+    var left = layout.Buttons.Single(button => button.Label == "←");
+    var right = layout.Buttons.Single(button => button.Label == "→");
+    Assert.IsTrue(up.Y + up.Height < left.Y && down.Y > left.Y + left.Height);
+    Assert.AreEqual(left.Y, right.Y);
+    Assert.AreEqual(up.X, down.X);
+    Assert.IsTrue(left.X < up.X && right.X > up.X);
+    Assert.AreEqual((int?)0x26, up.Key);
+    Assert.AreEqual((int?)0x28, down.Key);
+    var start = layout.Buttons.Single(button => button.Label == "START");
+    var select = layout.Buttons.Single(button => button.Label == "SELECT");
+    Assert.AreEqual((int?)0x0D, start.Key);
+    Assert.AreEqual(menu ? (int?)0x28 : null, select.Key);
+    Assert.AreEqual(start.Y, select.Y);
+    Assert.IsTrue(select.X < 960 && start.X > 960);
+    var attack = layout.Buttons.Single(button => button.Label == "ATTACK");
+    var jump = layout.Buttons.Single(button => button.Label == "JUMP");
+    Assert.AreEqual("I", attack.Heading);
+    Assert.AreEqual("II", jump.Heading);
+    Assert.AreEqual((int?)0x58, attack.Key);
+    Assert.AreEqual((int?)0x20, jump.Key);
+    Assert.AreEqual(attack.Y, jump.Y);
+    Assert.IsTrue(attack.X > start.X + start.Width && jump.X > attack.X + attack.Width);
+    Assert.AreEqual(down.Y + down.Height, jump.Y + jump.Height);
+  }
+
+  [TestMethod]
+  public void StartPausesAndSelectCyclesMenusWithoutTriggeringAPipeInGameplay()
+  {
+    using var input = new TouchInput();
+    var gameplay = new MobileLayout(1920, 1080, 3, menu: false);
+    var select = gameplay.Buttons.Single(button => button.Label == "SELECT");
+    input.SetPointer(1, gameplay.KeyAt(select.X + 1, select.Y + 1));
+    Assert.IsFalse(input.AnyKeyPressed);
+    Assert.IsFalse(input.Down(GameKey.Down));
+    var start = gameplay.Buttons.Single(button => button.Label == "START");
+    input.SetPointer(2, start.Key);
+    Assert.IsTrue(input.Pressed(GameKey.Start));
+    input.Clear();
+    var menu = new MobileLayout(1920, 1080, 3, menu: true);
+    var title = new TitleScreen();
+    select = menu.Buttons.Single(button => button.Label == "SELECT");
+    input.SetPointer(1, select.Key);
+    title.HandleInput(0, input.KeyPresses, true);
+    Assert.AreEqual(1, title.SelectedMenuIndex);
+    input.Clear();
+    input.SetPointer(1, select.Key);
+    title.HandleInput(0, input.KeyPresses, true);
+    Assert.AreEqual(2, title.SelectedMenuIndex);
+  }
+
+  [TestMethod]
   public void MobileSettingsHaveAudioAndBackWithoutDesktopUpdateControls()
   {
     var settings = new SettingsScreen(new AudioSettings(), updatesSupported: false);

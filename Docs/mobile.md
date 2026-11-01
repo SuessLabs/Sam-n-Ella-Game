@@ -65,11 +65,18 @@ with the appropriate signing identity and provisioning profile.
 
 ## Controls, display, and lifecycle
 
-Gameplay uses Left, Right, Down, Jump, Attack, and Pause touch targets. Fingers
-are tracked independently, so movement, jumping, and attacks work together;
-dragging off a control, cancelling a touch, or suspending clears held input.
-Menus and high-score initials use Left/Right/Up/Down, OK, and Back. The pause
-screen also offers Restart. Back closes Settings or resumes from Pause.
+The four-arrow D-pad always appears as a cross: Up above Left/Right, and Down
+below. Up retains the Windows Up-arrow jump mapping during gameplay. Start and
+Select sit at the bottom center. Start sends Enter, confirming menu choices and
+pausing/resuming through the pause menu. Select cycles menu choices and is
+inactive during gameplay. Attack and Jump sit side by side at the bottom right,
+with Roman numeral I above Attack and II above Jump.
+
+Fingers are tracked independently, so movement, jumping, and attacks work
+together; dragging off a control, cancelling a touch, or suspending clears held
+input. Menus and high-score initials use the D-pad and Start. Settings can be
+closed by selecting its Back row and pressing Start; the Android Back button
+also closes Settings or resumes from Pause.
 
 The game stays at 384 x 240. A safe-area-aware landscape canvas scales it to the
 largest size that fits the entire available display, preserving its 16:10 aspect

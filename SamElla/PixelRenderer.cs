@@ -184,7 +184,7 @@ internal sealed class PixelRenderer
         PixelFont.Draw(Frame, ">", left + 10, 126, Gold);
     }
 
-    DrawTitleText(_touchControls ? "LEFT/RIGHT PLAYER  UP/DOWN MENU  OK SELECT" : "LEFT/RIGHT PLAYER  UP/DOWN MENU  ENTER SELECT", 173, White, 1);
+    DrawTitleText(_touchControls ? "LEFT/RIGHT PLAYER  SELECT MENU  START CONFIRM" : "LEFT/RIGHT PLAYER  UP/DOWN MENU  ENTER SELECT", 173, White, 1);
 
     long ticks = (long)(title.Elapsed * 60);
     DrawCreditsRunner($"player-run-{animationFrame}", ticks, 0, 38, false, 224);
@@ -246,7 +246,7 @@ internal sealed class PixelRenderer
     DrawTitleText(screen.SelectedIndex == screen.BackIndex ? "> BACK <" : "BACK", 212,
       screen.SelectedIndex == screen.BackIndex ? Gold : White, 1);
 
-    DrawTitleText(_touchControls ? "ARROWS ADJUST  OK TOGGLE  BACK CLOSE" : "ARROWS ADJUST  ENTER/SPACE TOGGLE  ESC BACK", 230, White, 1);
+    DrawTitleText(_touchControls ? "ARROWS ADJUST  SELECT ROW  START CONFIRM" : "ARROWS ADJUST  ENTER/SPACE TOGGLE  ESC BACK", 230, White, 1);
   }
 
   private void DrawAudioToggle(string label, int y, bool enabled, bool selected)
@@ -310,7 +310,7 @@ internal sealed class PixelRenderer
 
     DrawTitleText($"PAGE {screen.Page + 1}/{screen.PageCount}  LEVELS {screen.Levels.Count}", 196, Gold, 1);
     DrawTitleText(_touchControls ? "UP/DOWN SELECT  LEFT/RIGHT PAGE" : "UP/DOWN SELECT  LEFT/RIGHT OR PGUP/PGDN PAGE", 213, White, 1);
-    DrawTitleText(_touchControls ? "OK PLAY  BACK CLOSE" : "ENTER PLAY  ESC BACK", 227, White, 1);
+    DrawTitleText(_touchControls ? "START PLAY" : "ENTER PLAY  ESC BACK", 227, White, 1);
   }
 
   public void DrawLevelStart(LevelStartScreen screen)
@@ -326,7 +326,7 @@ internal sealed class PixelRenderer
     DrawTitleText("UNCLE QUOTE", 155, Gold, 1);
     DrawWrappedCentered(screen.Quote, 170, White);
     Frame.Fill(12, 218, Width - 24, 1, 0xFF355575);
-    DrawTitleText(_touchControls ? "TAP OK TO BEGIN" : "PRESS ANY KEY TO BEGIN", 227, Gold, 1);
+    DrawTitleText(_touchControls ? "TAP START TO BEGIN" : "PRESS ANY KEY TO BEGIN", 227, Gold, 1);
   }
 
   public void DrawLeaderboard(LeaderboardScreen screen)
@@ -356,7 +356,7 @@ internal sealed class PixelRenderer
       DrawTitleText("A-Z / 0-9 / SPACE", 163, Gold, 2);
       DrawTitleText("UP/DOWN: CHARACTER", 184, White, 1);
       DrawTitleText("LEFT/RIGHT: POSITION", 195, White, 1);
-      DrawTitleText(_touchControls ? "OK: ACCEPT" : "ENTER: ACCEPT", 211, Gold, 1);
+      DrawTitleText(_touchControls ? "START: ACCEPT" : "ENTER: ACCEPT", 211, Gold, 1);
       return;
     }
 
@@ -386,8 +386,8 @@ internal sealed class PixelRenderer
     }
 
     Frame.Fill(12, 210, Width - 24, 1, Gold);
-    string prompt = screen.Context == LeaderboardContext.Victory ? (_touchControls ? "TAP OK FOR CREDITS" : "PRESS ENTER FOR CREDITS") :
-      screen.Context == LeaderboardContext.GameOver ? (_touchControls ? "TAP OK TO START OVER" : "PRESS ENTER TO START OVER") : (_touchControls ? "OK / BACK CLOSE" : "ENTER / ESC BACK");
+    string prompt = screen.Context == LeaderboardContext.Victory ? (_touchControls ? "TAP START FOR CREDITS" : "PRESS ENTER FOR CREDITS") :
+      screen.Context == LeaderboardContext.GameOver ? (_touchControls ? "TAP START TO START OVER" : "PRESS ENTER TO START OVER") : (_touchControls ? "START TO CLOSE" : "ENTER / ESC BACK");
     DrawTitleText(prompt, 224, Gold, 1);
   }
 
@@ -419,7 +419,7 @@ internal sealed class PixelRenderer
     DrawTitleText($"LEVEL {game.LevelLabel}  SCORE {game.Score:000000}  DEATHS {game.TotalDeaths}", 202, White, 1);
 
     Frame.Fill(12, 215, Width - 24, 1, 0xFFFF6B6B);
-    DrawTitleText((_touchControls ? "TAP OK TO START OVER" : "PRESS ENTER TO START OVER"), 226, Gold, 1);
+    DrawTitleText((_touchControls ? "TAP START TO START OVER" : "PRESS ENTER TO START OVER"), 226, Gold, 1);
   }
 
   private void DrawWrappedCentered(string text, int y, uint color, int maxLines = 3)
@@ -833,7 +833,7 @@ internal sealed class PixelRenderer
     if (game.IsDying)
     {
       DrawDeathMessage(game.DeathQuote);
-      string Prompt = game.Lives == 0 ? (_touchControls ? "TAP OK TO START OVER" : "PRESS ENTER TO START OVER") : (_touchControls ? "TAP OK TO CONTINUE" : "PRESS ANY KEY TO CONTINUE");
+      string Prompt = game.Lives == 0 ? (_touchControls ? "TAP START TO START OVER" : "PRESS ENTER TO START OVER") : (_touchControls ? "TAP START TO CONTINUE" : "PRESS ANY KEY TO CONTINUE");
       int promptScale = game.AwaitingRestart ? 2 : 1;
       int promptY = game.AwaitingRestart ? 112 : Height - 9;
       if (!game.AwaitingRestart)
@@ -863,7 +863,7 @@ internal sealed class PixelRenderer
     DrawTitleText("PAUSED", 89, Gold, 2);
     DrawMenuChoice("RESUME GAME", 116, selection == 0);
     DrawMenuChoice("SETTINGS", 135, selection == 1);
-    DrawTitleText(_touchControls ? "UP/DOWN SELECT  OK CONFIRM" : "UP/DOWN SELECT  ENTER CONFIRM", 161, White, 1);
+    DrawTitleText(_touchControls ? "SELECT MENU  START CONFIRM" : "UP/DOWN SELECT  ENTER CONFIRM", 161, White, 1);
   }
 
   private void DrawWeaponQuote(string quote, string title)
@@ -1192,6 +1192,6 @@ internal sealed class PixelRenderer
     }
 
     Frame.Fill(0, Height - FooterHeight, Width, FooterHeight, Ink);
-    PixelFont.Draw(Frame, _touchControls ? "LEFT/RIGHT MOVE  DOWN PIPE  JUMP  ATTACK  PAUSE" : "A/D MOVE  SPACE JUMP  DOWN/S PIPE  X FIRE  ENTER PAUSE  R RETRY", 8, Height - 9, White);
+    PixelFont.Draw(Frame, _touchControls ? "ARROWS MOVE  DOWN PIPE  I ATTACK  II JUMP  START PAUSE" : "A/D MOVE  SPACE JUMP  DOWN/S PIPE  X FIRE  ENTER PAUSE  R RETRY", 8, Height - 9, White);
   }
 }

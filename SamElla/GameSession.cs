@@ -62,7 +62,6 @@ internal sealed class GameSession : IDisposable
   public Func<bool>? TryApplyUpdate { get; init; }
   public bool MenuControls => titleScreen.IsActive || settings.IsActive || leaderboard.IsActive
     || levelSelect is not null || game.Paused || game.IsDying || game.Won || levelStart.IsActive;
-  public bool CanRestart => game.Paused && !titleScreen.IsActive && !settings.IsActive && !leaderboard.IsActive && levelSelect is null;
 
   public void Suspend()
   {
