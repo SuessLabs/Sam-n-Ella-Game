@@ -9,13 +9,13 @@ internal interface IGameAudio : IDisposable
 
   void Play(GameSound sound);
 
-  void SetMusic(GameMusic music);
-
-  void SetMusicPaused(bool paused);
+  void SetEnabled(bool musicEnabled, bool effectsEnabled);
 
   void SetFlamethrowerActive(bool active);
 
-  void SetEnabled(bool musicEnabled, bool effectsEnabled);
+  void SetMusic(GameMusic music);
+
+  void SetMusicPaused(bool paused);
 
   void SetVolume(int musicVolume, int effectsVolume);
 

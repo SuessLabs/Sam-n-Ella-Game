@@ -20,44 +20,6 @@ internal enum GameMusic
 // Original scores rendered as layered FM lead, triangle bass, chords, and drums.
 internal static class GameMusicTracks
 {
-  public static GameMusic ForScreen(bool titleActive, Game game)
-  {
-    if (titleActive)
-      return GameMusic.Title;
-
-    if (game.Lives == 0 && game.AwaitingRestart)
-      return GameMusic.GameOver;
-
-    if (game.Won && game.Credits is not null)
-      return GameMusic.Credits;
-
-    if (game.IsDying || game.Lives == 0)
-      return GameMusic.None;
-
-    return ForLevel(game.CurrentBackground, game.CurrentBackground == game.Level.Background ? game.ThemeLevelNumber : 1);
-  }
-
-  public static GameMusic ForLevel(BackgroundTheme theme, int themeLevelNumber)
-  {
-    if (themeLevelNumber < 1)
-      throw new ArgumentOutOfRangeException(nameof(themeLevelNumber));
-
-    int song = (themeLevelNumber - 1) % 3;
-
-    return (theme, song) switch
-    {
-      (BackgroundTheme.Underworld, _) => GameMusic.Night2,
-      (BackgroundTheme.Night, 0) => GameMusic.Night1,
-      (BackgroundTheme.Night, 1) => GameMusic.Night2,
-      (BackgroundTheme.Night, _) => GameMusic.Night3,
-      (_, 0) => GameMusic.Day1,
-      (_, 1) => GameMusic.Day2,
-      _ => GameMusic.Day3,
-    };
-  }
-
-  public static bool Loops(GameMusic music) => music is not (GameMusic.None or GameMusic.GameOver);
-
   public static short[] Create(GameMusic music)
   {
     bool march = music == GameMusic.GameOver;
@@ -226,6 +188,43 @@ internal static class GameMusicTracks
     return samples;
   }
 
-  private static double Frequency(int midi) => 440 * Math.Pow(2, (midi - 69) / 12.0);
+  public static GameMusic ForLevel(BackgroundTheme theme, int themeLevelNumber)
+  {
+    if (themeLevelNumber < 1)
+      throw new ArgumentOutOfRangeException(nameof(themeLevelNumber));
 
+    int song = (themeLevelNumber - 1) % 3;
+
+    return (theme, song) switch
+    {
+      (BackgroundTheme.Underworld, _) => GameMusic.Night2,
+      (BackgroundTheme.Night, 0) => GameMusic.Night1,
+      (BackgroundTheme.Night, 1) => GameMusic.Night2,
+      (BackgroundTheme.Night, _) => GameMusic.Night3,
+      (_, 0) => GameMusic.Day1,
+      (_, 1) => GameMusic.Day2,
+      _ => GameMusic.Day3,
+    };
+  }
+
+  public static GameMusic ForScreen(bool titleActive, Game game)
+  {
+    if (titleActive)
+      return GameMusic.Title;
+
+    if (game.Lives == 0 && game.AwaitingRestart)
+      return GameMusic.GameOver;
+
+    if (game.Won && game.Credits is not null)
+      return GameMusic.Credits;
+
+    if (game.IsDying || game.Lives == 0)
+      return GameMusic.None;
+
+    return ForLevel(game.CurrentBackground, game.CurrentBackground == game.Level.Background ? game.ThemeLevelNumber : 1);
+  }
+
+  public static bool Loops(GameMusic music) => music is not (GameMusic.None or GameMusic.GameOver);
+
+  private static double Frequency(int midi) => 440 * Math.Pow(2, (midi - 69) / 12.0);
 }

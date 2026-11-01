@@ -105,27 +105,6 @@ internal static class GameSounds
     return samples;
   }
 
-  private static short[] CreatePaperWhoosh()
-  {
-    const double Duration = 0.18;
-    var samples = new short[(int)(SampleRate * Duration)];
-    uint noise = 0x7A9E2;
-    double filtered = 0;
-    for (int i = 0; i < samples.Length; i++)
-    {
-      double time = (double)i / SampleRate;
-      noise ^= noise << 13;
-      noise ^= noise >> 17;
-      noise ^= noise << 5;
-      double value = (noise & 0xFFFF) / 32767.5 - 1;
-      filtered += (value - filtered) * 0.28;
-      double envelope = Math.Sin(Math.PI * time / Duration) * Math.Min(1, time / 0.005);
-      samples[i] = (short)(filtered * envelope * short.MaxValue * 0.65);
-    }
-
-    return samples;
-  }
-
   private static short[] CreateFart(bool longFart)
   {
     double duration = longFart ? 0.55 : 0.35;
@@ -144,34 +123,6 @@ internal static class GameSounds
       double flutter = 0.6 + 0.4 * Math.Sin(2 * Math.PI * (longFart ? 14 : 23) * time);
       double envelope = Math.Min(1, time / 0.008) * Math.Min(1, (duration - time) / 0.06);
       samples[i] = (short)((buzz * 0.5 + rumble * 0.5) * flutter * envelope * short.MaxValue * 0.7);
-    }
-
-    return samples;
-  }
-
-  private static short[] CreateWhipCrack()
-  {
-    const double Duration = 0.22;
-    var samples = new short[(int)(SampleRate * Duration)];
-    uint noise = 0xC4A17;
-    double filtered = 0;
-
-    for (int i = 0; i < samples.Length; i++)
-    {
-      double time = (double)i / SampleRate;
-      noise ^= noise << 13;
-      noise ^= noise >> 17;
-      noise ^= noise << 5;
-
-      double value = (noise & 0xFFFF) / 32767.5 - 1;
-
-      filtered += (value - filtered) * 0.12;
-
-      double whoosh = filtered * Math.Sin(Math.PI * Math.Min(1, time / 0.1)) * 0.5;
-      double crack = time < 0.085 ? 0 : (value - filtered) * Math.Exp(-(time - 0.085) * 65);
-      double envelope = Math.Min(1, time / 0.005) * Math.Min(1, (Duration - time) / 0.025);
-
-      samples[i] = (short)(Math.Clamp((whoosh + crack) * envelope, -0.9, 0.9) * short.MaxValue);
     }
 
     return samples;
@@ -199,6 +150,27 @@ internal static class GameSounds
 
       double envelope = Math.Min(1, time / 0.035) * Math.Min(1, (Duration - time) / 0.15);
       samples[i] = (short)(Math.Clamp(voice * envelope * 0.85, -0.9, 0.9) * short.MaxValue);
+    }
+
+    return samples;
+  }
+
+  private static short[] CreatePaperWhoosh()
+  {
+    const double Duration = 0.18;
+    var samples = new short[(int)(SampleRate * Duration)];
+    uint noise = 0x7A9E2;
+    double filtered = 0;
+    for (int i = 0; i < samples.Length; i++)
+    {
+      double time = (double)i / SampleRate;
+      noise ^= noise << 13;
+      noise ^= noise >> 17;
+      noise ^= noise << 5;
+      double value = (noise & 0xFFFF) / 32767.5 - 1;
+      filtered += (value - filtered) * 0.28;
+      double envelope = Math.Sin(Math.PI * time / Duration) * Math.Min(1, time / 0.005);
+      samples[i] = (short)(filtered * envelope * short.MaxValue * 0.65);
     }
 
     return samples;
@@ -236,6 +208,34 @@ internal static class GameSounds
         : (filteredNoise * 0.35 + bass * 0.65) * Math.Exp(-10 * time);
 
       samples[i] = (short)(value * envelope * short.MaxValue * volume);
+    }
+
+    return samples;
+  }
+
+  private static short[] CreateWhipCrack()
+  {
+    const double Duration = 0.22;
+    var samples = new short[(int)(SampleRate * Duration)];
+    uint noise = 0xC4A17;
+    double filtered = 0;
+
+    for (int i = 0; i < samples.Length; i++)
+    {
+      double time = (double)i / SampleRate;
+      noise ^= noise << 13;
+      noise ^= noise >> 17;
+      noise ^= noise << 5;
+
+      double value = (noise & 0xFFFF) / 32767.5 - 1;
+
+      filtered += (value - filtered) * 0.12;
+
+      double whoosh = filtered * Math.Sin(Math.PI * Math.Min(1, time / 0.1)) * 0.5;
+      double crack = time < 0.085 ? 0 : (value - filtered) * Math.Exp(-(time - 0.085) * 65);
+      double envelope = Math.Min(1, time / 0.005) * Math.Min(1, (Duration - time) / 0.025);
+
+      samples[i] = (short)(Math.Clamp((whoosh + crack) * envelope, -0.9, 0.9) * short.MaxValue);
     }
 
     return samples;

@@ -20,7 +20,6 @@ internal sealed class UpdateSettings
           settings.IncludePrereleases = enabled;
       }
     }
-
     catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
     {
       // Missing or unreadable preferences keep stable updates enabled.

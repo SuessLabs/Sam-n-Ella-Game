@@ -8,15 +8,10 @@ internal sealed class GameKeyboard
   public const int PauseKey = 0x13;
 
   private readonly HashSet<int> _held = [];
-  private readonly HashSet<GameKey> _pressed = [];
   private readonly List<int> _keyPresses = [];
-
+  private readonly HashSet<GameKey> _pressed = [];
   public bool AnyKeyPressed { get; private set; }
   public IReadOnlyList<int> KeyPresses => _keyPresses;
-
-  public bool Down(GameKey key) => _held.Any(code => MapKey(code) == key);
-
-  public bool Pressed(GameKey key) => _pressed.Contains(key);
 
   public void BeginFrame()
   {
@@ -31,6 +26,8 @@ internal sealed class GameKeyboard
     BeginFrame();
   }
 
+  public bool Down(GameKey key) => _held.Any(code => MapKey(code) == key);
+
   public void KeyDown(int code, bool isRepeat = false)
   {
     if (!_held.Add(code) || isRepeat)
@@ -43,6 +40,8 @@ internal sealed class GameKeyboard
   }
 
   public void KeyUp(int code) => _held.Remove(code);
+
+  public bool Pressed(GameKey key) => _pressed.Contains(key);
 
   private static GameKey? MapKey(int code) => code switch
   {

@@ -9,14 +9,6 @@ internal sealed class PauseScreen
 
   public int SelectedIndex => _menu.SelectedIndex;
 
-  public void Open(Game game)
-  {
-    if (!game.Paused)
-      _menu.Reset();
-
-    game.Paused = true;
-  }
-
   public MenuAction HandleInput(Game game, IReadOnlyList<int> keyPresses, bool windowActive)
   {
     if (!windowActive || game.IsDying || game.Lives == 0)
@@ -36,5 +28,13 @@ internal sealed class PauseScreen
       game.Paused = false;
 
     return action;
+  }
+
+  public void Open(Game game)
+  {
+    if (!game.Paused)
+      _menu.Reset();
+
+    game.Paused = true;
   }
 }

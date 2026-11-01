@@ -6,19 +6,39 @@ namespace SamElla.Mobile;
 // Multiple fingers can hold the same action; releasing one must not release the other.
 internal sealed class TouchInput : IGameWindow
 {
-  private readonly Dictionary<long, int> _pointers = [];
   private readonly HashSet<long> _activePointers = [];
-  private readonly HashSet<long> _suppressedPointers = [];
   private readonly GameKeyboard _keyboard = new();
-
+  private readonly Dictionary<long, int> _pointers = [];
+  private readonly HashSet<long> _suppressedPointers = [];
   public bool Active { get; set; } = true;
-  public bool Closed => false;
   public bool AnyKeyPressed => _keyboard.AnyKeyPressed;
+  public bool Closed => false;
   public IReadOnlyList<int> KeyPresses => _keyboard.KeyPresses;
+
+  public void Clear()
+  {
+    _activePointers.Clear();
+    _suppressedPointers.Clear();
+    _pointers.Clear();
+    _keyboard.Clear();
+  }
+
+  public void Dispose() => Clear();
 
   public bool Down(GameKey key) => _keyboard.Down(key);
 
+  public void MovePointer(long id, int? key)
+  {
+    if (_activePointers.Contains(id))
+      ApplyPointer(id, key);
+  }
+
+  public void Present(PixelBuffer frame)
+  { }
+
   public bool Pressed(GameKey key) => _keyboard.Pressed(key);
+
+  public void PumpEvents() => _keyboard.BeginFrame();
 
   public void SetPointer(long id, int? key)
   {
@@ -31,12 +51,6 @@ internal sealed class TouchInput : IGameWindow
       _activePointers.Add(id);
 
     ApplyPointer(id, key);
-  }
-
-  public void MovePointer(long id, int? key)
-  {
-    if (_activePointers.Contains(id))
-      ApplyPointer(id, key);
   }
 
   public void SuppressUntilRelease()
@@ -69,18 +83,4 @@ internal sealed class TouchInput : IGameWindow
         _keyboard.KeyDown(code);
     }
   }
-
-  public void Clear()
-  {
-    _activePointers.Clear();
-    _suppressedPointers.Clear();
-    _pointers.Clear();
-    _keyboard.Clear();
-  }
-
-  public void PumpEvents() => _keyboard.BeginFrame();
-
-  public void Present(PixelBuffer frame) { }
-
-  public void Dispose() => Clear();
 }

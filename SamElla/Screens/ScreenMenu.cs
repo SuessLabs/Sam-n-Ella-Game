@@ -15,8 +15,6 @@ internal sealed class ScreenMenu(bool includeLeaderboard = false)
 {
   public int SelectedIndex { get; private set; }
 
-  public void Reset() => SelectedIndex = 0;
-
   public MenuAction HandleInput(IReadOnlyList<int> keyPresses, bool windowActive)
   {
     if (!windowActive)
@@ -35,4 +33,6 @@ internal sealed class ScreenMenu(bool includeLeaderboard = false)
 
     return MenuAction.None;
   }
+
+  public void Reset() => SelectedIndex = 0;
 }

@@ -9,26 +9,13 @@ namespace SamElla;
 internal sealed class TitleScreen
 {
   private static readonly int[] KonamiCode = [0x26, 0x26, 0x28, 0x28, 0x25, 0x27, 0x25, 0x27, 0x42, 0x41];
-  private readonly Queue<int> _recentKeys = new();
   private readonly ScreenMenu _menu = new(includeLeaderboard: true);
-
+  private readonly Queue<int> _recentKeys = new();
+  public double Elapsed { get; private set; }
   public bool IsActive { get; private set; } = true;
   public bool KonamiCodeEnabled { get; private set; }
-  public double Elapsed { get; private set; }
   public PlayerCharacter SelectedCharacter { get; private set; } = PlayerCharacter.Sam;
   public int SelectedMenuIndex => _menu.SelectedIndex;
-
-  public void HandleKeyPress(int code)
-  {
-    if (!IsActive)
-      return;
-
-    _recentKeys.Enqueue(code);
-    if (_recentKeys.Count > KonamiCode.Length)
-      _recentKeys.Dequeue();
-    if (_recentKeys.SequenceEqual(KonamiCode))
-      KonamiCodeEnabled = true;
-  }
 
   public MenuAction HandleInput(double elapsed, IReadOnlyList<int> keyPresses, bool windowActive)
   {
@@ -44,6 +31,18 @@ internal sealed class TitleScreen
     var action = _menu.HandleInput(keyPresses, windowActive);
     Update(elapsed, action == MenuAction.Primary, windowActive, selectionDirection);
     return action;
+  }
+
+  public void HandleKeyPress(int code)
+  {
+    if (!IsActive)
+      return;
+
+    _recentKeys.Enqueue(code);
+    if (_recentKeys.Count > KonamiCode.Length)
+      _recentKeys.Dequeue();
+    if (_recentKeys.SequenceEqual(KonamiCode))
+      KonamiCodeEnabled = true;
   }
 
   public void Update(double elapsed, bool startPressed, bool windowActive, int selectionDirection = 0)

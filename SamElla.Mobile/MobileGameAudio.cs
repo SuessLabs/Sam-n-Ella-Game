@@ -11,21 +11,27 @@ internal sealed class MobileGameAudio : IGameAudio
 {
   private readonly Dictionary<GameSound, byte[]> _effects = Enum.GetValues<GameSound>()
     .ToDictionary(sound => sound, sound => Wave(GameSounds.Create(sound)));
+
   private readonly Dictionary<GameMusic, byte[]> _musicSamples = Enum.GetValues<GameMusic>()
     .Where(music => music != GameMusic.None).ToDictionary(music => music, music => Wave(GameMusicTracks.Create(music)));
+
+  private readonly MusicPauseState _pause = new();
   private readonly List<(IAudioPlayer Player, bool Notification)> _voices = [];
   private readonly AudioWorker _worker;
-  private readonly MusicPauseState _pause = new();
-  private IAudioPlayer? _music, _flame;
-  private GameMusic _track;
+
   private volatile bool _deathSoundPending;
   private volatile IAudioPlayer? _deathVoice;
+
   private bool _effectsEnabled = true, _flameRequested, _suspended, _musicStarted, _musicWasPaused;
+  private IAudioPlayer? _music, _flame;
   private int _musicVolume = 30, _effectsVolume = 50;
+  private GameMusic _track;
 
   public MobileGameAudio() => _worker = new AudioWorker(() => RunAudio(Update), () => RunAudio(StopCore));
 
   public bool IsDeathSoundPlaying => _deathSoundPending || _deathVoice is not null;
+
+  public void Dispose() => _worker.Dispose();
 
   public void Play(GameSound sound)
   {
@@ -57,7 +63,6 @@ internal sealed class MobileGameAudio : IGameAudio
 
         player.Play();
       }
-
       finally
       {
         if (sound == GameSound.Died)
@@ -65,33 +70,6 @@ internal sealed class MobileGameAudio : IGameAudio
       }
     });
   }
-
-  public void SetMusic(GameMusic music) => Queue(() =>
-  {
-    if (music == _track)
-      return;
-
-    _music?.Dispose();
-    _music = null;
-    _track = music;
-    _musicStarted = _musicWasPaused = false;
-    if (music != GameMusic.None)
-      _music = Create(_musicSamples[music], GameMusicTracks.Loops(music), _musicVolume);
-
-    UpdateMusicPause();
-  });
-
-  public void SetMusicPaused(bool paused) => Queue(() =>
-  {
-    _pause.GamePaused = paused;
-    UpdateMusicPause();
-  });
-
-  public void SetFlamethrowerActive(bool active) => Queue(() =>
-  {
-    _flameRequested = active;
-    UpdateFlame();
-  });
 
   public void SetEnabled(bool musicEnabled, bool effectsEnabled) => Queue(() =>
   {
@@ -104,17 +82,31 @@ internal sealed class MobileGameAudio : IGameAudio
     UpdateMusicPause();
   });
 
-  public void SetVolume(int musicVolume, int effectsVolume) => Queue(() =>
+  public void SetFlamethrowerActive(bool active) => Queue(() =>
   {
-    _musicVolume = Math.Clamp(musicVolume, 0, 100);
-    _effectsVolume = Math.Clamp(effectsVolume, 0, 100);
-    if (_music is not null)
-      _music.Volume = _musicVolume / 100.0;
-    if (_flame is not null)
-      _flame.Volume = _effectsVolume / 100.0;
+    _flameRequested = active;
+    UpdateFlame();
+  });
 
-    foreach (var voice in _voices)
-      voice.Player.Volume = _effectsVolume / 100.0;
+  public void SetMusic(GameMusic music) => Queue(() =>
+      {
+        if (music == _track)
+          return;
+
+        _music?.Dispose();
+        _music = null;
+        _track = music;
+        _musicStarted = _musicWasPaused = false;
+        if (music != GameMusic.None)
+          _music = Create(_musicSamples[music], GameMusicTracks.Loops(music), _musicVolume);
+
+        UpdateMusicPause();
+      });
+
+  public void SetMusicPaused(bool paused) => Queue(() =>
+  {
+    _pause.GamePaused = paused;
+    UpdateMusicPause();
   });
 
   public void SetSuspended(bool suspended) => Queue(() =>
@@ -127,97 +119,20 @@ internal sealed class MobileGameAudio : IGameAudio
     UpdateMusicPause();
   });
 
+  public void SetVolume(int musicVolume, int effectsVolume) => Queue(() =>
+    {
+      _musicVolume = Math.Clamp(musicVolume, 0, 100);
+      _effectsVolume = Math.Clamp(effectsVolume, 0, 100);
+      if (_music is not null)
+        _music.Volume = _musicVolume / 100.0;
+      if (_flame is not null)
+        _flame.Volume = _effectsVolume / 100.0;
+
+      foreach (var voice in _voices)
+        voice.Player.Volume = _effectsVolume / 100.0;
+    });
+
   public void Stop() => Queue(StopCore);
-
-  public void Dispose() => _worker.Dispose();
-
-  private void Queue(Action action) => _worker.Enqueue(() => RunAudio(action));
-
-  private static void RunAudio(Action action)
-  {
-    try
-    {
-      action();
-    }
-
-    catch (Exception exception)
-    {
-      System.Diagnostics.Debug.WriteLine(exception);
-    }
-  }
-
-  private void Update()
-  {
-    for (int i = _voices.Count - 1; i >= 0; i--)
-    {
-      var voice = _voices[i];
-      if (voice.Player.IsPlaying)
-        continue;
-
-      _pause.CompleteNotification(voice.Player);
-      if (ReferenceEquals(_deathVoice, voice.Player))
-        _deathVoice = null;
-
-      voice.Player.Dispose();
-      _voices.RemoveAt(i);
-      UpdateMusicPause();
-    }
-  }
-
-  private void UpdateMusicPause()
-  {
-    if (_music is null)
-      return;
-
-    if (_suspended || _pause.ShouldPause)
-    {
-      if (_music.IsPlaying)
-      {
-        _music.Pause();
-        _musicWasPaused = true;
-      }
-    }
-    else if (!_musicStarted || _musicWasPaused)
-    {
-      _music.Play();
-      _musicStarted = true;
-      _musicWasPaused = false;
-    }
-  }
-
-  private void UpdateFlame()
-  {
-    if (!_flameRequested || !_effectsEnabled || _suspended)
-    {
-      _flame?.Dispose();
-      _flame = null;
-    }
-    else if (_flame is null)
-    {
-      _flame = Create(_effects[GameSound.Flamethrower], true, _effectsVolume);
-      _flame?.Play();
-    }
-  }
-
-  private void ClearVoices()
-  {
-    foreach (var voice in _voices)
-      voice.Player.Dispose();
-
-    _voices.Clear();
-    _deathVoice = null;
-    _pause.ClearNotifications();
-  }
-
-  private void StopCore()
-  {
-    ClearVoices();
-    _music?.Dispose();
-    _flame?.Dispose();
-    _music = _flame = null;
-    _track = GameMusic.None;
-    _flameRequested = false;
-  }
 
   private static IAudioPlayer? Create(byte[] wave, bool loop, int volume)
   {
@@ -228,11 +143,22 @@ internal sealed class MobileGameAudio : IGameAudio
       player.Volume = volume / 100.0;
       return player;
     }
-
     catch (Exception exception)
     {
       System.Diagnostics.Debug.WriteLine(exception);
       return null; // An unavailable audio device must not prevent offline play.
+    }
+  }
+
+  private static void RunAudio(Action action)
+  {
+    try
+    {
+      action();
+    }
+    catch (Exception exception)
+    {
+      System.Diagnostics.Debug.WriteLine(exception);
     }
   }
 
@@ -256,5 +182,80 @@ internal sealed class MobileGameAudio : IGameAudio
       writer.Write(sample);
 
     return stream.ToArray();
+  }
+
+  private void ClearVoices()
+  {
+    foreach (var voice in _voices)
+      voice.Player.Dispose();
+
+    _voices.Clear();
+    _deathVoice = null;
+    _pause.ClearNotifications();
+  }
+
+  private void Queue(Action action) => _worker.Enqueue(() => RunAudio(action));
+
+  private void StopCore()
+  {
+    ClearVoices();
+    _music?.Dispose();
+    _flame?.Dispose();
+    _music = _flame = null;
+    _track = GameMusic.None;
+    _flameRequested = false;
+  }
+
+  private void Update()
+  {
+    for (int i = _voices.Count - 1; i >= 0; i--)
+    {
+      var voice = _voices[i];
+      if (voice.Player.IsPlaying)
+        continue;
+
+      _pause.CompleteNotification(voice.Player);
+      if (ReferenceEquals(_deathVoice, voice.Player))
+        _deathVoice = null;
+
+      voice.Player.Dispose();
+      _voices.RemoveAt(i);
+      UpdateMusicPause();
+    }
+  }
+
+  private void UpdateFlame()
+  {
+    if (!_flameRequested || !_effectsEnabled || _suspended)
+    {
+      _flame?.Dispose();
+      _flame = null;
+    }
+    else if (_flame is null)
+    {
+      _flame = Create(_effects[GameSound.Flamethrower], true, _effectsVolume);
+      _flame?.Play();
+    }
+  }
+
+  private void UpdateMusicPause()
+  {
+    if (_music is null)
+      return;
+
+    if (_suspended || _pause.ShouldPause)
+    {
+      if (_music.IsPlaying)
+      {
+        _music.Pause();
+        _musicWasPaused = true;
+      }
+    }
+    else if (!_musicStarted || _musicWasPaused)
+    {
+      _music.Play();
+      _musicStarted = true;
+      _musicWasPaused = false;
+    }
   }
 }

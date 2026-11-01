@@ -13,25 +13,27 @@ internal sealed class GamePage : ContentPage, IDisposable
 {
   private static readonly SKPoint[] ArrowPoints = [new(-0.30f, -0.12f), new(0.05f, -0.12f), new(0.05f, -0.30f),
     new(0.30f, 0), new(0.05f, 0.30f), new(0.05f, 0.12f), new(-0.30f, 0.12f)];
-  private readonly SKCanvasView _canvas = new() { EnableTouchEvents = true };
-  private readonly TouchInput _input = new();
-  private readonly Stopwatch _clock = Stopwatch.StartNew();
+
   private readonly SKBitmap _bitmap = new(PixelRenderer.Width, PixelRenderer.Height, SKColorType.Bgra8888, SKAlphaType.Opaque);
+  private readonly SKPaint _buttonPaint = new() { IsAntialias = true };
+  private readonly SKCanvasView _canvas = new() { EnableTouchEvents = true };
+  private readonly Stopwatch _clock = Stopwatch.StartNew();
+  private readonly SKFont _font = new();
+  private readonly SKPaint _imagePaint = new() { IsAntialias = false };
+  private readonly TouchInput _input = new();
   private readonly int[] _pixels = new int[PixelRenderer.Width * PixelRenderer.Height];
   private readonly IDispatcherTimer _timer;
-  private readonly SKPaint _imagePaint = new() { IsAntialias = false };
-  private readonly SKPaint _buttonPaint = new() { IsAntialias = true };
-  private readonly SKFont _font = new();
-  private GameSession? _session;
-  private MobileGameAudio? _audio;
-  private MobileLayout? _layout;
-  private bool _menu = true;
-  private bool _deathContinueReady;
+
   private bool _active = true;
+  private MobileGameAudio? _audio;
+  private bool _deathContinueReady;
   private bool _disposed;
+  private MobileLayout? _layout;
   private bool _loading;
+  private bool _menu = true;
   private string _message = "LOADING...";
   private double _previous;
+  private GameSession? _session;
 
   public GamePage()
   {
@@ -43,6 +45,49 @@ internal sealed class GamePage : ContentPage, IDisposable
     _timer = Dispatcher.CreateTimer();
     _timer.Interval = TimeSpan.FromSeconds(Game.Step);
     _timer.Tick += (_, _) => Tick();
+  }
+
+  public void Dispose()
+  {
+    if (_disposed)
+      return;
+
+    _disposed = true;
+    DeviceDisplay.Current.KeepScreenOn = false;
+
+    _timer.Stop();
+    _session?.Dispose();
+    _audio?.Dispose();
+    _input.Dispose();
+    _canvas.PaintSurface -= Paint;
+    _canvas.Touch -= Touch;
+    _bitmap.Dispose();
+    _imagePaint.Dispose();
+    _buttonPaint.Dispose();
+    _font.Dispose();
+  }
+
+  public void Resume()
+  {
+    if (_disposed)
+      return;
+
+    _active = _input.Active = true;
+    _input.Clear();
+    _audio?.SetSuspended(false);
+    _previous = _clock.Elapsed.TotalSeconds;
+
+    if (_session is not null)
+      _timer.Start();
+  }
+
+  public void Suspend()
+  {
+    _active = _input.Active = false;
+    _input.Clear();
+    _timer.Stop();
+    _session?.Suspend();
+    _audio?.SetSuspended(true);
   }
 
   protected override async void OnAppearing()
@@ -57,6 +102,7 @@ internal sealed class GamePage : ContentPage, IDisposable
     {
       string root = await GameContent.PrepareAsync();
       _audio = await Task.Run(() => new MobileGameAudio());
+
       if (_disposed)
       {
         _audio.Dispose();
@@ -66,12 +112,12 @@ internal sealed class GamePage : ContentPage, IDisposable
       _session = new GameSession(Path.Combine(root, "Assets"), Path.Combine(root, "Levels"),
         Path.Combine(FileSystem.AppDataDirectory, "settings.txt"), _audio, desktopUpdates: false);
       _previous = _clock.Elapsed.TotalSeconds;
+
       if (_active)
         _timer.Start();
       else
         _audio.SetSuspended(true);
     }
-
     catch (Exception exception)
     {
       _message = "COULD NOT LOAD GAME";
@@ -82,28 +128,6 @@ internal sealed class GamePage : ContentPage, IDisposable
     _canvas.InvalidateSurface();
   }
 
-  public void Suspend()
-  {
-    _active = _input.Active = false;
-    _input.Clear();
-    _timer.Stop();
-    _session?.Suspend();
-    _audio?.SetSuspended(true);
-  }
-
-  public void Resume()
-  {
-    if (_disposed)
-      return;
-
-    _active = _input.Active = true;
-    _input.Clear();
-    _audio?.SetSuspended(false);
-    _previous = _clock.Elapsed.TotalSeconds;
-    if (_session is not null)
-      _timer.Start();
-  }
-
   protected override bool OnBackButtonPressed()
   {
     _input.SetPointer(long.MinValue, _session?.MenuControls == false ? 0x0D : 0x1B);
@@ -111,38 +135,37 @@ internal sealed class GamePage : ContentPage, IDisposable
     return true;
   }
 
-  private void Tick()
+  private void DrawDirectionArrow(SKCanvas canvas, SKRect rectangle, int key)
   {
-    if (!_active || _disposed || _session is null)
-      return;
-
-    double now = _clock.Elapsed.TotalSeconds;
-    _session.Tick(_input, now - _previous);
-    _previous = now;
-    _input.PumpEvents();
-    if (_session.MenuControls != _menu || _session.DeathContinueReady != _deathContinueReady)
+    using var arrow = new SKPath();
+    float size = Math.Min(rectangle.Width, rectangle.Height);
+    for (int index = 0; index < ArrowPoints.Length; index++)
     {
-      _menu = _session.MenuControls;
-      _deathContinueReady = _session.DeathContinueReady;
-      _layout = null;
-      _input.SuppressUntilRelease();
+      var point = ArrowPoints[index];
+      var rotated = key switch
+      {
+        0x25 => new SKPoint(-point.X, -point.Y),
+        0x26 => new SKPoint(point.Y, -point.X),
+        0x28 => new SKPoint(-point.Y, point.X),
+        _ => point,
+      };
+
+      float x = rectangle.MidX + rotated.X * size, y = rectangle.MidY + rotated.Y * size;
+      if (index == 0)
+        arrow.MoveTo(x, y);
+      else
+        arrow.LineTo(x, y);
     }
 
-    if (_session.ExitRequested)
-    {
-      _session.Dispose();
-      _timer.Stop();
-      Application.Current?.Quit();
-      return;
-    }
-
-    _canvas.InvalidateSurface();
+    arrow.Close();
+    canvas.DrawPath(arrow, _buttonPaint);
   }
 
   private void Paint(object? sender, SKPaintSurfaceEventArgs args)
   {
     var canvas = args.Surface.Canvas;
     canvas.Clear(SKColors.Black);
+
     if (_session is null)
     {
       _font.Size = 24;
@@ -153,25 +176,34 @@ internal sealed class GamePage : ContentPage, IDisposable
 
     double density = DeviceDisplay.MainDisplayInfo.Density;
     _layout = new MobileLayout(args.Info.Width, args.Info.Height, density, _menu, _session.StartEnabled);
+
     var view = _layout.Viewport;
     Buffer.BlockCopy(_session.Frame.Pixels, 0, _pixels, 0, _pixels.Length * sizeof(int));
     Marshal.Copy(_pixels, 0, _bitmap.GetPixels(), _pixels.Length);
+
     using var image = SKImage.FromBitmap(_bitmap);
+
     canvas.DrawImage(image, new SKRect((float)view.X, (float)view.Y,
       (float)(view.X + view.Width), (float)(view.Y + view.Height)), new SKSamplingOptions(SKFilterMode.Nearest), _imagePaint);
+
     foreach (var button in _layout.Buttons)
     {
       var rectangle = new SKRect((float)button.X, (float)button.Y,
         (float)(button.X + button.Width), (float)(button.Y + button.Height));
+
       _buttonPaint.Color = new SKColor(35, 59, 78, button.Key.HasValue ? (byte)88 : (byte)40);
       _buttonPaint.Style = SKPaintStyle.Fill;
       canvas.DrawRoundRect(rectangle, 12, 12, _buttonPaint);
+
       _buttonPaint.Color = new SKColor(255, 213, 107, button.Key.HasValue ? (byte)180 : (byte)80);
       _buttonPaint.Style = SKPaintStyle.Stroke;
       _buttonPaint.StrokeWidth = 2;
+
       canvas.DrawRoundRect(rectangle, 12, 12, _buttonPaint);
+
       _buttonPaint.Style = SKPaintStyle.Fill;
       _buttonPaint.Color = new SKColor(255, 213, 107, button.Key.HasValue ? (byte)220 : (byte)96);
+
       if (button.Label is "↑" or "↓" or "←" or "→")
       {
         DrawDirectionArrow(canvas, rectangle, button.Key!.Value);
@@ -206,29 +238,33 @@ internal sealed class GamePage : ContentPage, IDisposable
     }
   }
 
-  private void DrawDirectionArrow(SKCanvas canvas, SKRect rectangle, int key)
+  private void Tick()
   {
-    using var arrow = new SKPath();
-    float size = Math.Min(rectangle.Width, rectangle.Height);
-    for (int index = 0; index < ArrowPoints.Length; index++)
+    if (!_active || _disposed || _session is null)
+      return;
+
+    double now = _clock.Elapsed.TotalSeconds;
+    _session.Tick(_input, now - _previous);
+    _previous = now;
+    _input.PumpEvents();
+
+    if (_session.MenuControls != _menu || _session.DeathContinueReady != _deathContinueReady)
     {
-      var point = ArrowPoints[index];
-      var rotated = key switch
-      {
-        0x25 => new SKPoint(-point.X, -point.Y),
-        0x26 => new SKPoint(point.Y, -point.X),
-        0x28 => new SKPoint(-point.Y, point.X),
-        _ => point,
-      };
-      float x = rectangle.MidX + rotated.X * size, y = rectangle.MidY + rotated.Y * size;
-      if (index == 0)
-        arrow.MoveTo(x, y);
-      else
-        arrow.LineTo(x, y);
+      _menu = _session.MenuControls;
+      _deathContinueReady = _session.DeathContinueReady;
+      _layout = null;
+      _input.SuppressUntilRelease();
     }
 
-    arrow.Close();
-    canvas.DrawPath(arrow, _buttonPaint);
+    if (_session.ExitRequested)
+    {
+      _session.Dispose();
+      _timer.Stop();
+      Application.Current?.Quit();
+      return;
+    }
+
+    _canvas.InvalidateSurface();
   }
 
   private void Touch(object? sender, SKTouchEventArgs args)
@@ -244,24 +280,5 @@ internal sealed class GamePage : ContentPage, IDisposable
       _input.MovePointer(args.Id, _layout?.KeyAt(args.Location.X, args.Location.Y));
 
     args.Handled = true;
-  }
-
-  public void Dispose()
-  {
-    if (_disposed)
-      return;
-
-    _disposed = true;
-    DeviceDisplay.Current.KeepScreenOn = false;
-    _timer.Stop();
-    _session?.Dispose();
-    _audio?.Dispose();
-    _input.Dispose();
-    _canvas.PaintSurface -= Paint;
-    _canvas.Touch -= Touch;
-    _bitmap.Dispose();
-    _imagePaint.Dispose();
-    _buttonPaint.Dispose();
-    _font.Dispose();
   }
 }

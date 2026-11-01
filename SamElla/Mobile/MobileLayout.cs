@@ -22,9 +22,6 @@ internal readonly record struct TouchRegion(int? Key, string Label, double X, do
 
 internal sealed class MobileLayout
 {
-  public GameViewport Viewport { get; }
-  public IReadOnlyList<TouchRegion> Buttons { get; }
-
   public MobileLayout(double width, double height, double density, bool menu, bool? canPause = null)
   {
     double unit = Math.Min(Math.Max(1, density), Math.Min(width / 600, height / 300));
@@ -48,6 +45,9 @@ internal sealed class MobileLayout
       new(menu ? 0x0D : 0x20, "JUMP", width - 12 * unit - actionSize, bottom - actionSize, actionSize, actionSize, "○"),
     ];
   }
+
+  public IReadOnlyList<TouchRegion> Buttons { get; }
+  public GameViewport Viewport { get; }
 
   public int? KeyAt(double x, double y)
   {
