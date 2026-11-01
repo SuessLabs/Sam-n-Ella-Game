@@ -123,7 +123,7 @@ internal sealed class GamePage : ContentPage, IDisposable
     {
       _menu = _session.MenuControls;
       _layout = null;
-      _input.Clear();
+      _input.SuppressUntilRelease();
     }
 
     if (_session.ExitRequested)
@@ -236,8 +236,10 @@ internal sealed class GamePage : ContentPage, IDisposable
 
     if (args.ActionType is SKTouchAction.Released or SKTouchAction.Cancelled or SKTouchAction.Exited)
       _input.SetPointer(args.Id, null);
-    else if (args.ActionType is SKTouchAction.Pressed or SKTouchAction.Moved)
+    else if (args.ActionType == SKTouchAction.Pressed)
       _input.SetPointer(args.Id, _layout?.KeyAt(args.Location.X, args.Location.Y));
+    else if (args.ActionType == SKTouchAction.Moved)
+      _input.MovePointer(args.Id, _layout?.KeyAt(args.Location.X, args.Location.Y));
 
     args.Handled = true;
   }

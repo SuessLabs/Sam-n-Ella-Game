@@ -34,6 +34,47 @@ public sealed class MobileHostTests : GameTestBase
   }
 
   [TestMethod]
+  public void HeldStartCannotRepeatOrBecomeAMenuConfirmationAfterChangingScreens()
+  {
+    using var input = new TouchInput();
+    input.SetPointer(1, GameKeyboard.PauseKey);
+    Assert.IsTrue(input.Pressed(GameKey.Start));
+    Assert.IsFalse(input.KeyPresses.Contains(0x0D));
+    input.PumpEvents();
+    input.SuppressUntilRelease();
+    for (int tick = 0; tick < 120; tick++)
+    {
+      input.MovePointer(1, tick % 3 == 0 ? null : GameKeyboard.PauseKey);
+      Assert.IsFalse(input.Pressed(GameKey.Start));
+      Assert.IsFalse(input.AnyKeyPressed);
+      input.PumpEvents();
+    }
+
+    input.MovePointer(1, 0x0D);
+    Assert.IsFalse(input.AnyKeyPressed, "The held finger must not accept a selection on the new screen.");
+    input.SetPointer(1, null);
+    input.SetPointer(1, GameKeyboard.PauseKey);
+    Assert.IsTrue(input.Pressed(GameKey.Start));
+    Assert.IsFalse(input.KeyPresses.Contains(0x0D));
+  }
+
+  [TestMethod]
+  public void ContextChangeRequiresJumpReleaseBeforeAcceptAndIgnoresOldMovesAfterSuspension()
+  {
+    using var input = new TouchInput();
+    input.SetPointer(1, 0x20);
+    input.SuppressUntilRelease();
+    input.MovePointer(1, 0x0D);
+    Assert.IsFalse(input.AnyKeyPressed);
+    input.SetPointer(1, null);
+    input.SetPointer(1, 0x0D);
+    Assert.IsTrue(input.KeyPresses.Contains(0x0D));
+    input.Clear();
+    input.MovePointer(1, 0x0D);
+    Assert.IsFalse(input.AnyKeyPressed);
+  }
+
+  [TestMethod]
   public void SlidingBetweenButtonsAndTwoFingersOnSameButtonCannotLeaveStuckInput()
   {
     using var input = new TouchInput();
@@ -201,6 +242,19 @@ public sealed class MobileHostTests : GameTestBase
       Assert.AreEqual(clock - 1, session.Game.LevelTicksRemaining);
       Press(session, input, GameKeyboard.PauseKey);
       Assert.IsTrue(session.Game.Paused);
+      input.SetPointer(100, GameKeyboard.PauseKey);
+      input.SuppressUntilRelease();
+      int pausedClock = session.Game.LevelTicksRemaining;
+      for (int tick = 0; tick < 60; tick++)
+      {
+        input.MovePointer(100, tick % 3 == 0 ? null : GameKeyboard.PauseKey);
+        session.Tick(input, Game.Step);
+        input.PumpEvents();
+        Assert.IsTrue(session.Game.Paused, "Holding Start must not flicker between paused and unpaused.");
+      }
+
+      Assert.AreEqual(pausedClock, session.Game.LevelTicksRemaining);
+      input.SetPointer(100, null);
       Press(session, input, 0x28);
       Press(session, input, GameKeyboard.PauseKey);
       Assert.IsFalse(session.Game.Paused, "Start toggles pause instead of accepting the selected Settings item.");

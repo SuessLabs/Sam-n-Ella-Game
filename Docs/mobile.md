@@ -77,7 +77,10 @@ Cancelling the mobile high-score entry skips submitting that score.
 
 Fingers are tracked independently, so movement, jumping, and attacks work
 together; dragging off a control, cancelling a touch, or suspending clears held
-input. Menus and high-score initials use the D-pad and Jump to accept. Settings
+input. Menus and high-score initials use the D-pad and Jump to accept. Held
+touches must be released after switching between gameplay and menus,
+so holding Start cannot repeatedly open and close Pause. Start never sends a
+menu-confirmation action; only Jump accepts selections. Settings
 can be closed with Attack or by selecting its Back row and pressing Jump; the Android Back button
 also closes Settings or resumes from Pause.
 
