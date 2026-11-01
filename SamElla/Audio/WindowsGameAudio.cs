@@ -11,50 +11,6 @@ namespace SamElla.Audio;
 [SupportedOSPlatform("windows")]
 internal sealed unsafe class WindowsGameAudio : IGameAudio
 {
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutClose(nint device);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutOpen(out nint device, uint deviceId, ref WaveFormat format,
-    nuint callback, nuint instance, uint flags);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutPause(nint device);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutPrepareHeader(nint device, WaveHeader* header, uint size);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutReset(nint device);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutRestart(nint device);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutUnprepareHeader(nint device, WaveHeader* header, uint size);
-
-  [DllImport("winmm.dll", ExactSpelling = true)]
-  private static extern uint waveOutWrite(nint device, WaveHeader* header, uint size);
-
-  [StructLayout(LayoutKind.Sequential, Pack = 2)]
-  private struct WaveFormat
-  {
-    public ushort FormatTag, Channels;
-    public uint SamplesPerSecond, AverageBytesPerSecond;
-    public ushort BlockAlign, BitsPerSample, ExtraSize;
-  }
-
-  [StructLayout(LayoutKind.Sequential)]
-  private struct WaveHeader
-  {
-    public nint Data;
-    public uint Length, BytesRecorded;
-    public nuint User;
-    public uint Flags, Loops;
-    public nint Next;
-    public nuint Reserved;
-  }
-
   private readonly MusicPauseState _musicPause = new();
 
   private readonly Dictionary<GameMusic, short[]> _musicSamples = Enum.GetValues<GameMusic>()
@@ -67,9 +23,11 @@ internal sealed unsafe class WindowsGameAudio : IGameAudio
 
   private readonly AudioWorker _worker;
 
-  private bool _disposed;
   private volatile bool _deathSoundPending;
+
   private volatile Voice? _deathVoice;
+
+  private bool _disposed;
 
   private bool _effectsEnabled = true;
 
@@ -126,7 +84,6 @@ internal sealed unsafe class WindowsGameAudio : IGameAudio
       {
         PlayCore(sound);
       }
-
       finally
       {
         if (sound == GameSound.Died)
@@ -189,6 +146,31 @@ internal sealed unsafe class WindowsGameAudio : IGameAudio
     ResetQueuedState();
     _worker.Enqueue(StopCore);
   }
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutClose(nint device);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutOpen(out nint device, uint deviceId, ref WaveFormat format,
+    nuint callback, nuint instance, uint flags);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutPause(nint device);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutPrepareHeader(nint device, WaveHeader* header, uint size);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutReset(nint device);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutRestart(nint device);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutUnprepareHeader(nint device, WaveHeader* header, uint size);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutWrite(nint device, WaveHeader* header, uint size);
 
   private void ApplyMusicPause()
   {
@@ -369,6 +351,25 @@ internal sealed unsafe class WindowsGameAudio : IGameAudio
       if (notificationFinished)
         ApplyMusicPause();
     }
+  }
+
+  [StructLayout(LayoutKind.Sequential, Pack = 2)]
+  private struct WaveFormat
+  {
+    public ushort FormatTag, Channels;
+    public uint SamplesPerSecond, AverageBytesPerSecond;
+    public ushort BlockAlign, BitsPerSample, ExtraSize;
+  }
+
+  [StructLayout(LayoutKind.Sequential)]
+  private struct WaveHeader
+  {
+    public nint Data;
+    public uint Length, BytesRecorded;
+    public nuint User;
+    public uint Flags, Loops;
+    public nint Next;
+    public nuint Reserved;
   }
 
   private sealed class Voice : IDisposable
