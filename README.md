@@ -100,7 +100,7 @@ The original `SamElla-vX.Y.Z.zip` remains available as an unmanaged portable bui
 it does not self-update. Existing ZIP users must install the setup EXE or use the
 Velopack-generated portable ZIP once to enable automatic updates.
 
-For each release, increment the project FileVersion and build, then upload **all files**
+For each release, increment the shared `GameVersion.props` FileVersion and build, then upload **all files**
 from `Publish/Velopack/win-x64/` as assets of the same GitHub Release. The full `.nupkg`
 and `releases.win-x64.json` are required; uploading only a ZIP is insufficient.
 The new `publish-release.yml` workflow performs the build, tests, and upload automatically

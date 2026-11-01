@@ -52,7 +52,7 @@ jobs:
           RELEASE_CHANNEL: ${{ inputs.release-channel }}
         run: |
           ./scripts/Test-PackageVersion.ps1
-          [xml]$project = Get-Content SamElla/SamElla.csproj
+          [xml]$project = Get-Content GameVersion.props
           $actual = [string]($project.Project.PropertyGroup.FileVersion | Where-Object { $_ } | Select-Object -First 1)
           if ($env:REQUESTED_VERSION -and $actual -ne $env:REQUESTED_VERSION) {
             throw 'Checked-out version does not match the requested release version.'
@@ -70,7 +70,7 @@ jobs:
       - name: Verify native installer bootstrap hook
         shell: pwsh
         run: |
-          [xml]$project = Get-Content SamElla/SamElla.csproj
+          [xml]$project = Get-Content GameVersion.props
           $version = [string]($project.Project.PropertyGroup.FileVersion | Where-Object { $_ } | Select-Object -First 1)
           $name = 'SamElla-v' + (($version.Split('.'))[0..2] -join '.')
           $native = Join-Path $PWD "Publish/$name/SamElla.exe"

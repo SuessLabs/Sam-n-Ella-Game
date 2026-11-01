@@ -1,12 +1,12 @@
-name: Mobile build
+name: Windows and mobile build
 
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['SamElla/**', 'SamElla.Core/**', 'SamElla.Mobile/**', 'SamElla.Tests/**', 'build-mobile.ps1', '.github/workflows/mobile.yml']
+    types: [opened, synchronize, reopened]
   push:
     branches: [develop, master]
-    paths: ['SamElla/**', 'SamElla.Core/**', 'SamElla.Mobile/**', 'SamElla.Tests/**', 'build-mobile.ps1', '.github/workflows/mobile.yml']
+    paths: ['SamElla/**', 'SamElla.Core/**', 'SamElla.Mobile/**', 'SamElla.Tests/**', 'GameVersion.props', 'build-mobile.ps1', 'scripts/Test-BuildVersions.ps1', '.github/scripts/**', '.github/workflows/mobile.yml']
 
 permissions:
   contents: read
@@ -20,13 +20,41 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.x
+      - name: Assign matching CI versions for this PR push
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        env:
+          CI_RUN_NUMBER: ${{ github.run_number }}
+        run: ./.github/scripts/Set-CiBuildVersion.ps1 -RepositoryPath $env:GITHUB_WORKSPACE -RunNumber ([int]$env:CI_RUN_NUMBER)
       - name: Install mobile workload
         run: dotnet workload install maui-android
+      - name: Verify desktop and mobile versions
+        shell: pwsh
+        run: |
+          ./scripts/Test-BuildVersions.ps1
+          ./.github/scripts/Test-BuildVersion.ps1
+      - name: Build Windows with the same version
+        run: dotnet build SamElla/SamElla.csproj --configuration Release
       - name: Test shared gameplay and mobile input
         run: dotnet test --project SamElla.Tests/SamElla.Tests.csproj --configuration Release
       - name: Build Android APK
         shell: pwsh
-        run: ./build-mobile.ps1 -Configuration Debug
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+        run: |
+          if ($env:IS_PR -eq 'true') {
+            ./build-mobile.ps1 -Configuration Debug -Preview
+          } else {
+            ./build-mobile.ps1 -Configuration Debug
+          }
       - name: Check bundled game files
         shell: pwsh
-        run: ./scripts/Test-MobilePackage.ps1 -ApkPath Publish/Mobile/android-arm64/com.suesslabs.samella-Signed.apk
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+        run: |
+          $apk = if ($env:IS_PR -eq 'true') {
+            'Publish/Mobile/Preview/android-arm64/com.suesslabs.samella.preview-Signed.apk'
+          } else {
+            'Publish/Mobile/android-arm64/com.suesslabs.samella-Signed.apk'
+          }
+          ./scripts/Test-MobilePackage.ps1 -ApkPath $apk

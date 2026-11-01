@@ -41,10 +41,37 @@ dotnet restore SamElla.Mobile/SamElla.Mobile.csproj -p:MobileTargetFramework=net
 ./build-mobile.ps1 -Offline
 ```
 
-`-BuildNumber` is the Android version code (default 1 for local testing). Use an
-increasing value and a persistent private signing key for distributed updates.
-The script reads the display/file version from the Windows project's FileVersion.
+Windows and MAUI read `FileVersion`, `AssemblyVersion`, and `MobileBuildNumber`
+from the root `GameVersion.props` during project evaluation, including IDE builds.
+Android displays the full Windows version (for example `0.8.0.123`) and uses
+`MobileBuildNumber` for its numeric version code. iOS uses the three-part display
+version (`0.8.0`) and the same mobile build number (`123`); its assembly and in-game
+version still contain all four parts. The mobile counter keeps increasing when
+the release prefix changes and its fourth component is reset.
+
+`-BuildNumber` explicitly overrides the Android version code when needed; ordinary
+builds should use the shared value. Use a persistent private signing key for
+distributed updates. `-Preview` uses `com.suesslabs.samella.preview` and writes to
+`Publish/Mobile/Preview/<runtime>/`, keeping CI installs separate from releases.
 No signing credentials or store publication are configured by this port.
+
+Every opened, updated (`synchronize`), or reopened PR runs the Windows/mobile
+workflow, including PRs whose pushes only change documentation. In its disposable
+checkout, `.github/scripts/Set-CiBuildVersion.ps1` adds the workflow run number to
+the checked-in fourth component and mobile counter. Windows and Android build
+from that same file. Rerunning the same workflow run checks out fresh source and
+reuses the version; a later PR run receives a higher increment. No version commit
+is pushed to the PR branch. Preview numbers are CI-only and must not be uploaded
+to the production Play listing. Develop/master push builds use the committed
+version; the existing develop merge automation increments the shared file once.
+
+Check version evaluation and CI increments locally:
+
+```powershell
+./scripts/Test-BuildVersions.ps1 -IncludeIos
+```
+
+Omit `-IncludeIos` on machines with only the Android workload installed.
 
 ## iPhone and iPad
 

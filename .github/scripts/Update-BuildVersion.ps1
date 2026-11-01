@@ -29,7 +29,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 $repo = [System.IO.Path]::GetFullPath($RepositoryPath)
-$projectRelativePath = 'SamElla/SamElla.csproj'
+$projectRelativePath = 'GameVersion.props'
 $projectPath = Join-Path $repo $projectRelativePath
 
 function Invoke-RepositoryGit
@@ -54,9 +54,10 @@ function Read-ProjectVersion
   [xml]$document = $source
   $fileNodes = $document.SelectNodes('/Project/PropertyGroup/FileVersion')
   $assemblyNodes = $document.SelectNodes('/Project/PropertyGroup/AssemblyVersion')
-  if ($fileNodes.Count -ne 1 -or $assemblyNodes.Count -ne 1)
+  $mobileNodes = $document.SelectNodes('/Project/PropertyGroup/MobileBuildNumber')
+  if ($fileNodes.Count -ne 1 -or $assemblyNodes.Count -ne 1 -or $mobileNodes.Count -ne 1)
   {
-    throw 'Expected exactly one FileVersion and one AssemblyVersion in SamElla.csproj.'
+    throw 'Expected exactly one FileVersion, AssemblyVersion, and MobileBuildNumber in GameVersion.props.'
   }
   $version = $fileNodes[0].InnerText.Trim()
   if ($version -notmatch '^\d+\.\d+\.\d+\.\d+$' -or $assemblyNodes[0].InnerText.Trim() -ne $version)
@@ -68,7 +69,12 @@ function Read-ProjectVersion
   {
     throw 'Each assembly version component must be between 0 and 65534.'
   }
-  return [pscustomobject]@{ Source = $source; Version = $version; Parts = $parts }
+  [int]$mobileBuild = 0
+  if (-not [int]::TryParse($mobileNodes[0].InnerText.Trim(), [ref]$mobileBuild) -or $mobileBuild -lt 1 -or $mobileBuild -ge 2100000000)
+  {
+    throw 'MobileBuildNumber must be a positive integer below 2100000000 before incrementing.'
+  }
+  return [pscustomobject]@{ Source = $source; Version = $version; Parts = $parts; MobileBuild = $mobileBuild }
 }
 
 function Report-Version
@@ -121,7 +127,7 @@ for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++)
     return
   }
 
-  foreach ($path in @((Join-Path $repo 'SamElla'), $projectPath))
+  foreach ($path in @($projectPath))
   {
     if (((Get-Item -LiteralPath $path -Force).Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0)
     {
@@ -150,6 +156,8 @@ for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++)
       return $match.Groups[1].Value + $newVersion + $match.Groups[2].Value
     })
   }
+  $updatedSource = [regex]::Replace($updatedSource, '(<MobileBuildNumber>\s*)\d+(\s*</MobileBuildNumber>)',
+    [System.Text.RegularExpressions.MatchEvaluator]{ param($match) return $match.Groups[1].Value + ($current.MobileBuild + 1) + $match.Groups[2].Value })
   [System.IO.File]::WriteAllText($projectPath, $updatedSource, [System.Text.UTF8Encoding]::new($false))
   $null = Invoke-RepositoryGit -Arguments @('add', '--', $projectRelativePath)
   $null = Invoke-RepositoryGit -Arguments @('-c', 'user.name=github-actions[bot]',
