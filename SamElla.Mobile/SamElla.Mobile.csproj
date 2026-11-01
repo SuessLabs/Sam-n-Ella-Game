@@ -19,8 +19,10 @@
     <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.20" />
     <PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.4" />
     <PackageReference Include="Plugin.Maui.Audio" Version="4.0.0" />
-    <MauiIcon Include="Resources/AppIcon/appicon.svg" Color="#17263F" />
-    <MauiSplashScreen Include="Resources/AppIcon/appicon.svg" Color="#17263F" BaseSize="128,128" />
+    <MauiIcon Include="Resources/AppIcon/appicon.svg" ForegroundFile="../Docs/Sam-and-Ella.png"
+      ForegroundScale="0.65" Color="#17263F" Resize="true" BaseSize="128,128" />
+    <MauiSplashScreen Include="../Docs/Sam-and-Ella.png" Link="Resources/Splash/sam_ella.png"
+      Color="#17263F" Resize="true" BaseSize="128,128" />
     <MauiAsset Include="../SamElla/Assets/**/*.sprite;../SamElla/Assets/**/*.txt"
       Exclude="../SamElla/Assets/AppIcon/**;../SamElla/Assets/Previews/**"
       LogicalName="Game/Assets/%(RecursiveDir)%(Filename)%(Extension)" />
