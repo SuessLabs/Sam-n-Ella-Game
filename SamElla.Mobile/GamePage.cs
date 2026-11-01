@@ -159,14 +159,15 @@ internal sealed class GamePage : ContentPage, IDisposable
     {
       var rectangle = new SKRect((float)button.X, (float)button.Y,
         (float)(button.X + button.Width), (float)(button.Y + button.Height));
-      _buttonPaint.Color = new SKColor(35, 59, 78, 230);
+      _buttonPaint.Color = new SKColor(35, 59, 78, 88);
       _buttonPaint.Style = SKPaintStyle.Fill;
       canvas.DrawRoundRect(rectangle, 12, 12, _buttonPaint);
-      _buttonPaint.Color = new SKColor(255, 213, 107);
+      _buttonPaint.Color = new SKColor(255, 213, 107, 180);
       _buttonPaint.Style = SKPaintStyle.Stroke;
       _buttonPaint.StrokeWidth = 2;
       canvas.DrawRoundRect(rectangle, 12, 12, _buttonPaint);
       _buttonPaint.Style = SKPaintStyle.Fill;
+      _buttonPaint.Color = new SKColor(255, 213, 107, 220);
       _font.Size = (float)Math.Min(button.Height * 0.25, button.Width / 5.5);
       canvas.DrawText(button.Label, rectangle.MidX, rectangle.MidY + _font.Size / 3,
         SKTextAlign.Center, _font, _buttonPaint);

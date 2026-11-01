@@ -51,26 +51,39 @@ public sealed class MobileHostTests : GameTestBase
   [TestMethod]
   [DataRow(1920, 1080, 3.0)]
   [DataRow(2400, 1080, 3.0)]
+  [DataRow(2340, 1080, 3.0)]
   [DataRow(2560, 1440, 4.0)]
   [DataRow(1280, 800, 2.0)]
   [DataRow(640, 360, 1.0)]
-  public void PhoneAndTabletLayoutsKeepPixelAspectRatioAndSeparateTouchTargets(int width, int height, double density)
+  public void PhoneAndTabletLayoutsMaximizeGameAreaAndOverlaySeparateTouchTargets(int width, int height, double density)
   {
     foreach (bool menu in new[] { false, true })
     {
       var layout = new MobileLayout(width, height, density, menu);
       var view = layout.Viewport;
       Assert.AreEqual(1.6, view.Width / view.Height, 0.00001);
-      Assert.AreEqual(Math.Floor(view.Width / 384), view.Width / 384);
+      Assert.IsTrue(Math.Abs(view.Width - width) < 0.00001 || Math.Abs(view.Height - height) < 0.00001,
+        "The game must reach a pair of screen edges instead of reserving space for controls or rounding the scale down.");
       Assert.IsTrue(view.X >= 0 && view.Y >= 0 && view.X + view.Width <= width && view.Y + view.Height <= height);
       foreach (var button in layout.Buttons)
       {
-        Assert.IsTrue(button.X >= 0 && button.Y >= view.Y + view.Height);
+        Assert.IsTrue(button.X >= 0 && button.Y >= 0);
         Assert.IsTrue(button.X + button.Width <= width && button.Y + button.Height <= height);
         Assert.AreEqual(button.Key, layout.KeyAt(button.X + button.Width / 2, button.Y + button.Height / 2));
         Assert.AreEqual(1, layout.Buttons.Count(other => other.Contains(button.X + button.Width / 2, button.Y + button.Height / 2)));
       }
     }
+  }
+
+  [TestMethod]
+  public void FullHdPhoneUsesFullHeightWithFractionalScaling()
+  {
+    var layout = new MobileLayout(1920, 1080, 3, menu: false);
+    Assert.AreEqual(new GameViewport(96, 0, 1728, 1080), layout.Viewport);
+    Assert.IsTrue(layout.Buttons.Any(button => button.Contains(button.X + button.Width / 2, 1000)),
+      "Controls must remain accessible over the enlarged game view.");
+    Assert.IsTrue(layout.Buttons.Any(button => button.X < layout.Viewport.X + layout.Viewport.Width
+      && button.X + button.Width > layout.Viewport.X && button.Y < layout.Viewport.Height));
   }
 
   [TestMethod]

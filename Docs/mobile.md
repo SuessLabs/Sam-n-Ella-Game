@@ -71,11 +71,14 @@ dragging off a control, cancelling a touch, or suspending clears held input.
 Menus and high-score initials use Left/Right/Up/Down, OK, and Back. The pause
 screen also offers Restart. Back closes Settings or resumes from Pause.
 
-The game stays at 384 x 240. A safe-area-aware landscape canvas centers it above
-the touch controls, preserving its 16:10 aspect ratio and using nearest-neighbor,
-whole-pixel scaling when space allows. Wider devices receive margins rather than
-extra visibility into the level. Control placement adapts to phone/tablet size
-and density, with a reserved touch area rather than covering the playfield.
+The game stays at 384 x 240. A safe-area-aware landscape canvas scales it to the
+largest size that fits the entire available display, preserving its 16:10 aspect
+ratio without cropping. Fractional scaling avoids wasting space on phones whose
+resolution is not a whole multiple of the game resolution; nearest-neighbor
+sampling retains the pixel-art look. Wider devices receive side margins rather
+than extra visibility into the level. Translucent touch controls overlay the
+lower edges of the view instead of reserving a separate strip below the game.
+Control placement adapts to phone/tablet size and density.
 
 Leaving the app pauses gameplay, saves preferences/records, clears touches, and
 silences audio. Returning leaves gameplay paused until the player resumes, with

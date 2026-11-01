@@ -8,10 +8,8 @@ internal readonly record struct GameViewport(double X, double Y, double Width, d
   public static GameViewport Fit(double width, double height)
   {
     double scale = Math.Min(width / PixelRenderer.Width, height / PixelRenderer.Height);
-    // Whole physical-pixel scaling keeps pixel art sharp; tiny windows can scale down.
-    if (scale >= 1)
-      scale = Math.Floor(scale);
 
+    // Fractional scaling fills the available display without stretching or cropping.
     double w = PixelRenderer.Width * scale, h = PixelRenderer.Height * scale;
     return new((width - w) / 2, (height - h) / 2, w, h);
   }
@@ -31,15 +29,18 @@ internal sealed class MobileLayout
   {
     double unit = Math.Min(Math.Max(1, density), Math.Min(width / 600, height / 300));
     double size = 48 * unit, gap = 6 * unit, bottom = height - 8 * unit;
-    double controlsHeight = size * 2 + gap + 16 * unit;
-    Viewport = GameViewport.Fit(width, Math.Max(1, height - controlsHeight));
+
+    Viewport = GameViewport.Fit(width, height);
+
     double x = 12 * unit, y = bottom - size * 2 - gap;
+
     var buttons = new List<TouchRegion>
     {
       new(0x25, "LEFT", x, y + size + gap, size, size),
       new(0x27, "RIGHT", x + 2 * (size + gap), y + size + gap, size, size),
       new(0x28, "DOWN", x + size + gap, y + size + gap, size, size),
     };
+
     if (menu)
     {
       buttons.Add(new(0x26, "UP", x + size + gap, y, size, size));
