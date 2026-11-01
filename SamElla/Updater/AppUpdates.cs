@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using Velopack;
 using Velopack.Sources;
 
@@ -39,7 +42,6 @@ internal sealed class AppUpdates(IAppUpdateBackend backend, Action<Exception>? l
         progress => _status = $"DOWNLOADING UPDATE {progress}%", _cancellation.Token);
       _status = _ready ? "UPDATE READY" : string.Empty;
     }
-
     catch (Exception exception)
     {
       log?.Invoke(exception);
@@ -64,7 +66,6 @@ internal sealed class AppUpdates(IAppUpdateBackend backend, Action<Exception>? l
       backend.ScheduleApply(restart, restartArgs);
       return true;
     }
-
     catch (Exception exception)
     {
       log?.Invoke(exception);

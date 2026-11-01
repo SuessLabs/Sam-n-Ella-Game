@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 namespace SamElla;
 
 // A tiny 3 x 5 bitmap font keeps HUD text sharp at the same scale as the sprites.

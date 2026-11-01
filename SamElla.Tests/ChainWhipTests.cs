@@ -1,3 +1,6 @@
+// Copyright Xeno Innovations, Inc. 2026
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -284,7 +287,8 @@ public sealed class ChainWhipTests : GameTestBase
   private static Enemy AddEnemy(Game game, double x, int health)
   {
     var enemy = new Enemy(x, game.Y + game.PlayerHeight - Game.BodyHeight,
-      settings: new EnemySettings(0, health, 0)) { Direction = 0 };
+      settings: new EnemySettings(0, health, 0))
+    { Direction = 0 };
     game.Enemies.Add(enemy);
     return enemy;
   }
