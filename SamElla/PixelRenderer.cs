@@ -690,7 +690,7 @@ internal sealed class PixelRenderer
           cameraX, cameraY, _facingLeft, true, game.PlayerHeight);
     }
     else if (game.IsDying)
-      DrawActor(_sprites[PlayerSprite(game.Character, "player-splatter")], game.X, game.Y, cameraX, cameraY, _facingLeft, true);
+      DrawPlayerDeath(game, cameraX, cameraY);
     else if (game.PipeReliefTicksRemaining > 0)
     {
       bool facingLeft = game.FacingDirection < 0;
@@ -1049,6 +1049,60 @@ internal sealed class PixelRenderer
     }
 
     return true;
+  }
+
+  private void DrawPlayerDeath(Game game, int cameraX, int cameraY)
+  {
+    int age = Math.Clamp(Game.DeathDurationTicks - game.DeathTicksRemaining, 0, Game.DeathDurationTicks);
+    bool flip = game.FacingDirection < 0;
+    DrawActor(_sprites[PlayerSprite(game.Character, "player-splatter")], game.X, game.Y, cameraX, cameraY, flip, true);
+    if (age < 48)
+      DrawActor(_sprites[PlayerSprite(game.Character, $"player-explosion-{age / 12 + 1}")],
+        game.X, game.Y, cameraX, cameraY, flip, true);
+
+    int left = Math.Clamp((int)Math.Round((game.X + Game.BodyWidth / 2) * TileSize) - cameraX - 12, 0, Width - 24);
+    int floor = Math.Clamp(HeaderHeight + (int)Math.Round((game.Y + Game.BodyHeight) * TileSize) - cameraY,
+      HeaderHeight + 16, Height - FooterHeight) - 1;
+    int center = left + 12;
+
+    // The intestines uncoil and spill outward, then settle as the death timer ends.
+    double spill = Math.Clamp((age - 6) / 108.0, 0, 1);
+    int length = (int)Math.Round(30 * spill);
+    for (int strand = 0; strand < 3; strand++)
+    {
+      int direction = (strand == 1 ? -1 : 1) * game.FacingDirection;
+      for (int pixel = 0; pixel < length - strand * 3; pixel++)
+      {
+        int x = center + direction * pixel;
+        int curl = (int)Math.Round(Math.Sin(pixel * 0.65 + strand * 2) * 2
+          + Math.Sin(pixel * 0.3 + age * 0.18) * (1 - spill) * 3);
+        int y = floor - 4 - strand * 2 + curl;
+        Frame.Fill(x - 1, y - 1, 4, 4, 0xFF981D3B);
+        Frame.Fill(x, y, 2, 2, 0xFFD98290);
+        if (pixel % 3 == 0)
+          Frame.Fill(x, y, 1, 1, 0xFFF1BB8B);
+      }
+    }
+
+    for (int fragment = 0; fragment < 20; fragment++)
+    {
+      int elapsed = age - fragment % 5 * 4;
+      if (elapsed < 0)
+        continue;
+
+      double launch = 1.3 + fragment % 4 * 0.23;
+      double landing = (launch + Math.Sqrt(launch * launch + 1.92)) / 0.12;
+      double flight = Math.Min(elapsed, landing);
+      int direction = (fragment % 2 == 0 ? -1 : 1) * game.FacingDirection;
+      int x = center + direction * (int)Math.Round(flight * (0.35 + fragment % 7 * 0.12));
+      int y = Math.Min(floor - 2, floor - 8 + (int)Math.Round(-launch * flight + 0.06 * flight * flight));
+      bool clothing = fragment % 5 == 0;
+      uint color = clothing ? (game.Character == PlayerCharacter.Ella ? 0xFF8745B5u : 0xFF238D93u)
+        : fragment % 3 == 0 ? 0xFF981D3Bu : 0xFFE83B3Bu;
+      Frame.Fill(x, y, clothing ? 3 : 2, elapsed < landing ? 3 : 2, color);
+      if (!clothing && fragment % 3 == 0)
+        Frame.Fill(x + 1, y, 2, 1, 0xFFD98290);
+    }
   }
 
   private void DrawActor(Sprite sprite, double x, double y, int cameraX, int cameraY, bool flip, bool keepInView = false, double bodyHeight = Game.BodyHeight)
