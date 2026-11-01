@@ -267,6 +267,110 @@ public sealed class MobileHostTests : GameTestBase
   }
 
   [TestMethod]
+  public void MobileKonamiAttackJumpSequenceWaitsForFreshJumpBeforeStartingCheatGame()
+  {
+    Map("................................", "................................", "................................", "................................",
+      "................................", "................................", "................................", "...S..........................G.", "################################");
+    string directory = Path.Combine(Path.GetTempPath(), "samella-konami-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(directory);
+    string level = Path.Combine(directory, "01-01-test.txt");
+    File.Copy(LevelPath, level);
+    try
+    {
+      using var audio = new FakeAudio();
+      using var input = new TouchInput();
+      using var session = new GameSession(Path.Combine(AppContext.BaseDirectory, "Assets"), directory, NextPath, audio, desktopUpdates: false);
+      var layout = new MobileLayout(1920, 1080, 3, menu: true);
+      string[] sequence = ["↑", "↑", "↓", "↓", "←", "→", "←", "→", "ATTACK"];
+      foreach (string label in sequence)
+        Press(session, input, layout.Buttons.Single(button => button.Label == label).Key!.Value);
+
+      Assert.IsFalse(session.ExitRequested, "Attack must reach the title's code detector instead of exiting or being discarded.");
+      Assert.IsFalse(audio.Sounds.Contains(GameSound.KonamiActivated));
+      int jump = layout.Buttons.Single(button => button.Label == "JUMP").Key!.Value;
+      input.SetPointer(99, jump);
+      session.Tick(input, Game.Step);
+      for (int frame = 0; frame < 60; frame++)
+      {
+        input.PumpEvents();
+        session.Tick(input, Game.Step);
+        Assert.AreEqual(3, session.Game.Lives, "The completing Jump and a held finger must leave the title open.");
+        Assert.IsFalse(session.Game.KonamiCheatEnabled);
+      }
+
+      input.SetPointer(99, null);
+      Assert.AreEqual(1, audio.Sounds.Count(sound => sound == GameSound.KonamiActivated), "Activation should play once even when Jump stays held.");
+      Press(session, input, jump);
+      Assert.IsTrue(session.Game.KonamiCheatEnabled);
+      Assert.AreEqual(30, session.Game.Lives);
+      Assert.IsTrue(session.Game.IsLarge);
+      Assert.IsTrue(session.Game.HasFlamethrower);
+      Assert.AreEqual(1, audio.Sounds.Count(sound => sound == GameSound.KonamiActivated), "Starting must not replay the activation cue.");
+    }
+    finally
+    {
+      File.Delete(level);
+      Directory.Delete(directory);
+    }
+  }
+
+  [TestMethod]
+  [DataRow(false)]
+  [DataRow(true)]
+  public void DoubleKonamiOpensBrowserWithoutStartingOrConfirmingUntilFreshInput(bool mobileControls)
+  {
+    Map("..........", "..........", "..S....G..", "##########");
+    string directory = Path.Combine(Path.GetTempPath(), "samella-double-code-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(directory);
+    string first = Path.Combine(directory, "01-first.txt");
+    string second = Path.Combine(directory, "02-second.txt");
+    File.Copy(LevelPath, first);
+    File.Copy(LevelPath, second);
+    try
+    {
+      using var audio = new FakeAudio();
+      using var input = new TouchInput();
+      using var session = new GameSession(Path.Combine(AppContext.BaseDirectory, "Assets"), directory, NextPath, audio,
+        desktopUpdates: !mobileControls);
+      Game initialGame = session.Game;
+      int b = mobileControls ? 0x1B : 0x42;
+      int a = mobileControls ? 0x0D : 0x41;
+      int[] prefix = [0x26, 0x26, 0x26, 0x26, 0x28, 0x28, 0x28, 0x28,
+        0x25, 0x25, 0x27, 0x27, 0x25, 0x25, 0x27, 0x27, b, b, a];
+      foreach (int key in prefix)
+      {
+        Press(session, input, key);
+        Assert.AreSame(initialGame, session.Game, "The first A must not start a game or accept another menu.");
+      }
+
+      input.SetPointer(99, a);
+      session.Tick(input, Game.Step);
+      var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"), touchControls: mobileControls);
+      renderer.DrawLevelSelect(new LevelSelectScreen(LevelSelectScreen.Discover(directory)));
+      CollectionAssert.AreEqual(renderer.Frame.Pixels, session.Frame.Pixels);
+      for (int frame = 0; frame < 30; frame++)
+      {
+        input.PumpEvents();
+        session.Tick(input, Game.Step);
+        Assert.AreSame(initialGame, session.Game, "Holding the last A must not confirm the first level.");
+      }
+
+      input.SetPointer(99, null);
+      Press(session, input, 0x28);
+      Press(session, input, 0x0D);
+      Assert.AreEqual(2, session.Game.LevelNumber);
+      Assert.IsFalse(session.Game.KonamiCheatEnabled, "Level select alone must not enable the separate power-up cheat.");
+      Assert.AreEqual(1, audio.Sounds.Count(sound => sound == GameSound.KonamiActivated));
+    }
+    finally
+    {
+      File.Delete(first);
+      File.Delete(second);
+      Directory.Delete(directory);
+    }
+  }
+
+  [TestMethod]
   public void SharedSessionStartsMovesJumpsAndPausesWithoutRunningDuringSuspension()
   {
     Map("................................", "................................", "................................", "................................",
@@ -470,8 +574,9 @@ public sealed class MobileHostTests : GameTestBase
     public bool Paused { get; private set; }
     public int MusicVolume { get; private set; }
     public int EffectsVolume { get; private set; }
+    public System.Collections.Generic.List<GameSound> Sounds { get; } = [];
 
-    public void Play(GameSound sound) { }
+    public void Play(GameSound sound) => Sounds.Add(sound);
 
     public void SetMusic(GameMusic music) { }
 

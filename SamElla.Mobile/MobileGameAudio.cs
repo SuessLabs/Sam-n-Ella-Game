@@ -52,7 +52,7 @@ internal sealed class MobileGameAudio : IGameAudio
         if (player is null)
           return;
 
-        bool notification = sound == GameSound.PowerUp;
+        bool notification = sound is GameSound.PowerUp or GameSound.KonamiActivated;
         _voices.Add((player, notification));
         if (notification)
           _pause.StartNotification(player);
