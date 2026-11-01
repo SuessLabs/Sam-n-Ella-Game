@@ -69,7 +69,7 @@ function Bump
 
 function Remote-Version
 {
-  [xml]$project = Invoke-TestGit $remote @('show', 'refs/heads/develop:SamElla/SamElla.csproj')
+  [xml]$project = Invoke-TestGit $remote @('show', 'refs/heads/develop:GameVersion.props')
   $fileVersion = $project.SelectSingleNode('/Project/PropertyGroup/FileVersion').InnerText
   $assemblyVersion = $project.SelectSingleNode('/Project/PropertyGroup/AssemblyVersion').InnerText
   Check ($fileVersion -eq $assemblyVersion) 'FileVersion and AssemblyVersion match'
@@ -81,12 +81,12 @@ function Commit-Version
   param([string]$Version)
   $null = Invoke-TestGit $racer @('fetch', 'origin')
   $null = Invoke-TestGit $racer @('switch', '--detach', 'origin/develop')
-  $path = Join-Path $racer 'SamElla/SamElla.csproj'
+  $path = Join-Path $racer 'GameVersion.props'
   $text = [System.IO.File]::ReadAllText($path)
   $text = [regex]::Replace($text, '(?<=<FileVersion>)[^<]+', $Version)
   $text = [regex]::Replace($text, '(?<=<AssemblyVersion>)[^<]+', $Version)
   [System.IO.File]::WriteAllText($path, $text, [System.Text.UTF8Encoding]::new($false))
-  $null = Invoke-TestGit $racer @('add', 'SamElla/SamElla.csproj')
+  $null = Invoke-TestGit $racer @('add', 'GameVersion.props')
   $null = Invoke-TestGit $racer @('-c', 'user.name=Version Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false',
     'commit', '-m', "Set version $Version")
   $null = Invoke-TestGit $racer @('push', 'origin', 'HEAD:refs/heads/develop')
@@ -102,12 +102,13 @@ $fixture = @'
     <TargetFramework>net10.0</TargetFramework>
     <FileVersion>0.4.0.60</FileVersion>
     <AssemblyVersion>0.4.0.60</AssemblyVersion>
+    <MobileBuildNumber>60</MobileBuildNumber>
   </PropertyGroup>
 </Project>
 '@
 $fixture = $fixture.Replace("`r`n", "`n").Replace("`n", "`r`n") + "`r`n"
-[System.IO.File]::WriteAllText((Join-Path $seed 'SamElla/SamElla.csproj'), $fixture, [System.Text.UTF8Encoding]::new($false))
-$null = Invoke-TestGit $seed @('add', 'SamElla/SamElla.csproj')
+[System.IO.File]::WriteAllText((Join-Path $seed 'GameVersion.props'), $fixture, [System.Text.UTF8Encoding]::new($false))
+$null = Invoke-TestGit $seed @('add', 'GameVersion.props')
 $null = Invoke-TestGit $seed @('-c', 'user.name=Version Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false',
   'commit', '-m', 'Merged PR fixture')
 $mergeCommit = Invoke-TestGit $seed @('rev-parse', 'HEAD')
@@ -120,11 +121,13 @@ $null = Invoke-TestGit $racer @('config', 'commit.gpgsign', 'false')
 
 $null = Bump $worker 101 $mergeCommit
 Check ((Remote-Version) -eq '0.4.0.61') 'A merged PR increments only the fourth component'
+[xml]$mobileProject = Invoke-TestGit $remote @('show', 'develop:GameVersion.props')
+Check ($mobileProject.Project.PropertyGroup.MobileBuildNumber -eq '61') 'A merged PR also increments the mobile store build number'
 $afterFirst = Invoke-TestGit $remote @('rev-parse', 'develop')
 $null = Bump $worker 101 $mergeCommit
 Check ((Invoke-TestGit $remote @('rev-parse', 'develop')) -eq $afterFirst) 'Rerunning a processed PR creates no commit'
-$blob = Invoke-TestGit $remote @('show', 'develop:SamElla/SamElla.csproj')
-Check ($blob -eq $fixture.TrimEnd().Replace('0.4.0.60', '0.4.0.61')) 'Project formatting and unrelated content are preserved'
+$blob = Invoke-TestGit $remote @('show', 'develop:GameVersion.props')
+Check ($blob -eq $fixture.TrimEnd().Replace('0.4.0.60', '0.4.0.61').Replace('<MobileBuildNumber>60', '<MobileBuildNumber>61')) 'Project formatting and unrelated content are preserved'
 
 # A pre-push hook lets the other worker win the race deterministically.
 $hookPath = Join-Path $worker '.git/hooks/pre-push'
@@ -161,7 +164,7 @@ Check ($outputs.commit -eq $afterFirst) 'Release output pins the exact original 
 Check ($outputs.updated -eq 'false') 'An older PR rerun does not bump again'
 Check ((Remote-Version) -eq '0.4.0.63') 'Reporting an older release never rewinds develop'
 
-$path = Join-Path $worker 'SamElla/SamElla.csproj'
+$path = Join-Path $worker 'GameVersion.props'
 $original = [System.IO.File]::ReadAllText($path)
 [System.IO.File]::AppendAllText($path, '<!-- uncommitted -->')
 $failure = Bump $worker 104 $mergeCommit -ExpectFailure
@@ -177,6 +180,8 @@ Check ((Remote-Version) -eq '0.4.0.65534') 'Overflow does not change the remote'
 Commit-Version '0.5.1.0'
 $null = Bump $worker 105 $mergeCommit
 Check ((Remote-Version) -eq '0.5.1.1') 'A deliberate Major.Minor.Revision change is preserved'
+[xml]$mobileProject = Invoke-TestGit $remote @('show', 'develop:GameVersion.props')
+Check ($mobileProject.Project.PropertyGroup.MobileBuildNumber -eq '64') 'Changing the release prefix never resets the mobile store build number'
 
 $rejectHook = Join-Path $remote 'hooks/pre-receive'
 [System.IO.File]::WriteAllText($rejectHook, "#!/bin/sh`necho 'Test branch rule rejects writes' >&2`nexit 1`n", [System.Text.UTF8Encoding]::new($false))

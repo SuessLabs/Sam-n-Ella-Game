@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <FileVersion>0.8.0.123</FileVersion>
+    <AssemblyVersion>0.8.0.123</AssemblyVersion>
+    <Version>$(FileVersion)</Version>
+    <!-- Store build numbers must keep increasing even when the release prefix changes. -->
+    <MobileBuildNumber>123</MobileBuildNumber>
+    <ApplicationDisplayVersion Condition="'$(TargetFramework)' != '' and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">$(FileVersion)</ApplicationDisplayVersion>
+    <ApplicationDisplayVersion Condition="'$(ApplicationDisplayVersion)' == ''">$([System.Version]::Parse('$(FileVersion)').ToString(3))</ApplicationDisplayVersion>
+    <ApplicationVersion Condition="'$(ApplicationVersion)' == ''">$(MobileBuildNumber)</ApplicationVersion>
+  </PropertyGroup>
+</Project>

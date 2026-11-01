@@ -3,21 +3,29 @@
 param(
   [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release',
   [ValidateSet('android-arm64', 'android-x64')][string]$Runtime = 'android-arm64',
-  [ValidateRange(1, 2100000000)][int]$BuildNumber = 1,
+  [ValidateRange(1, 2100000000)][int]$BuildNumber,
   [string]$JavaSdkDirectory,
+  [switch]$Preview,
   [switch]$Offline
 )
 
 $ErrorActionPreference = 'Stop'
 $project = Join-Path $PSScriptRoot 'SamElla.Mobile/SamElla.Mobile.csproj'
-[xml]$desktop = Get-Content (Join-Path $PSScriptRoot 'SamElla/SamElla.csproj')
-$version = [string]($desktop.Project.PropertyGroup.FileVersion | Where-Object { $_ } | Select-Object -First 1)
-$displayVersion = ([version]$version).ToString(3)
 $destination = Join-Path $PSScriptRoot "Publish/Mobile/$Runtime"
+if ($Preview)
+{
+  $destination = Join-Path $PSScriptRoot "Publish/Mobile/Preview/$Runtime"
+}
 $arguments = @('publish', $project, '--framework', 'net10.0-android', '--configuration', $Configuration, '--runtime', $Runtime,
-  '-p:MobileTargetFramework=net10.0-android', '-p:AndroidPackageFormats=apk',
-  "-p:ApplicationDisplayVersion=$displayVersion", "-p:ApplicationVersion=$BuildNumber",
-  "-p:FileVersion=$version", '--output', $destination)
+  '-p:MobileTargetFramework=net10.0-android', '-p:AndroidPackageFormats=apk', '--output', $destination)
+if ($PSBoundParameters.ContainsKey('BuildNumber'))
+{
+  $arguments += "-p:ApplicationVersion=$BuildNumber"
+}
+if ($Preview)
+{
+  $arguments += '-p:ApplicationId=com.suesslabs.samella.preview', "-p:ApplicationTitle=Sam n' Ella Preview"
+}
 if ($JavaSdkDirectory)
 {
   $arguments += "-p:JavaSdkDirectory=$JavaSdkDirectory"
