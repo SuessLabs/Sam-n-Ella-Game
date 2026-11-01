@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SamElla.Actors;
+using SamElla.Screens;
 
 namespace SamElla.Tests;
 
@@ -39,6 +40,35 @@ public sealed class KonamiCodeTests : GameTestBase
     Assert.AreEqual(2, game.PowerUpLevel);
     game.Update(0, false, true);
     Assert.IsNotNull(game.Flame);
+  }
+
+  [TestMethod]
+  public void MobileCodeConsumesFinalJumpButNormalJumpStillAcceptsMenus()
+  {
+    var title = new TitleScreen();
+    int[] touchCode = [0x26, 0x26, 0x28, 0x28, 0x25, 0x27, 0x25, 0x27, 0x1B, 0x0D];
+    foreach (int key in touchCode)
+    {
+      Assert.AreEqual(MenuAction.None, title.HandleInput(Game.Step, [key], true, mobileControls: true));
+      Assert.IsTrue(title.IsActive);
+    }
+
+    Assert.IsTrue(title.KonamiCodeEnabled);
+    Assert.AreEqual(MenuAction.Primary, title.HandleInput(Game.Step, [0x0D], true, mobileControls: true));
+    Assert.IsFalse(title.IsActive);
+    var normal = new TitleScreen();
+    Assert.AreEqual(MenuAction.Primary, normal.HandleInput(Game.Step, [0x0D], true, mobileControls: true));
+    Assert.IsFalse(normal.KonamiCodeEnabled);
+  }
+
+  [TestMethod]
+  public void BatchedMobileCodeDoesNotConfirmAnyMenuSelectionInItsCompletionFrame()
+  {
+    var title = new TitleScreen();
+    int[] keys = [0x26, 0x26, 0x28, 0x28, 0x25, 0x27, 0x25, 0x27, 0x1B, 0x0D, 0x0D];
+    Assert.AreEqual(MenuAction.None, title.HandleInput(Game.Step, keys, true, mobileControls: true));
+    Assert.IsTrue(title.IsActive);
+    Assert.IsTrue(title.KonamiCodeEnabled);
   }
 
   [TestMethod]

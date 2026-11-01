@@ -218,13 +218,13 @@ internal sealed class GameSession : IDisposable
         return;
       }
 
-      if (window.Active && window.Pressed(GameKey.Escape))
+      if (!mobileHost && window.Active && window.Pressed(GameKey.Escape))
       {
-        ExitRequested = !mobileHost;
+        ExitRequested = true;
         return;
       }
 
-      var titleAction = titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active);
+      var titleAction = titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active, mobileControls: mobileHost);
       if (titleAction == MenuAction.Settings)
         settings.Open();
       else if (titleAction == MenuAction.Leaderboard)

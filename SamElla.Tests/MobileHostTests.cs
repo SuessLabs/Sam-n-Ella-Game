@@ -267,6 +267,51 @@ public sealed class MobileHostTests : GameTestBase
   }
 
   [TestMethod]
+  public void MobileKonamiAttackJumpSequenceWaitsForFreshJumpBeforeStartingCheatGame()
+  {
+    Map("................................", "................................", "................................", "................................",
+      "................................", "................................", "................................", "...S..........................G.", "################################");
+    string directory = Path.Combine(Path.GetTempPath(), "samella-konami-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(directory);
+    string level = Path.Combine(directory, "01-01-test.txt");
+    File.Copy(LevelPath, level);
+    try
+    {
+      using var audio = new FakeAudio();
+      using var input = new TouchInput();
+      using var session = new GameSession(Path.Combine(AppContext.BaseDirectory, "Assets"), directory, NextPath, audio, desktopUpdates: false);
+      var layout = new MobileLayout(1920, 1080, 3, menu: true);
+      string[] sequence = ["↑", "↑", "↓", "↓", "←", "→", "←", "→", "ATTACK"];
+      foreach (string label in sequence)
+        Press(session, input, layout.Buttons.Single(button => button.Label == label).Key!.Value);
+
+      Assert.IsFalse(session.ExitRequested, "Attack must reach the title's code detector instead of exiting or being discarded.");
+      int jump = layout.Buttons.Single(button => button.Label == "JUMP").Key!.Value;
+      input.SetPointer(99, jump);
+      session.Tick(input, Game.Step);
+      for (int frame = 0; frame < 60; frame++)
+      {
+        input.PumpEvents();
+        session.Tick(input, Game.Step);
+        Assert.AreEqual(3, session.Game.Lives, "The completing Jump and a held finger must leave the title open.");
+        Assert.IsFalse(session.Game.KonamiCheatEnabled);
+      }
+
+      input.SetPointer(99, null);
+      Press(session, input, jump);
+      Assert.IsTrue(session.Game.KonamiCheatEnabled);
+      Assert.AreEqual(30, session.Game.Lives);
+      Assert.IsTrue(session.Game.IsLarge);
+      Assert.IsTrue(session.Game.HasFlamethrower);
+    }
+    finally
+    {
+      File.Delete(level);
+      Directory.Delete(directory);
+    }
+  }
+
+  [TestMethod]
   public void SharedSessionStartsMovesJumpsAndPausesWithoutRunningDuringSuspension()
   {
     Map("................................", "................................", "................................", "................................",

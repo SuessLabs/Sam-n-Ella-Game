@@ -12,6 +12,12 @@ Start/Select stay near the bottom middle, with spacing adjusted to prevent
 overlap on narrow screens. Changing the size requires held fingers to lift before
 they can activate the resized controls.
 
+On the mobile title screen, enter **Up, Up, Down, Down, Left, Right, Left, Right,
+Attack, Jump** to activate the Konami Code (Attack = B, Jump = A). The final Jump
+only activates the code and leaves the title open. Release it, then press Jump
+again to start with the existing 30-life power-up bonus. Normal Jump menu
+confirmation and Attack cancellation on other screens continue to work.
+
 While game content and audio load, the mobile page displays
 `Docs/GooglePlay/images/feature-graphic-1024x500.png`, stretched to fill its
 available screen area. It is bundled as `feature_graphic.png`, so loading artwork
